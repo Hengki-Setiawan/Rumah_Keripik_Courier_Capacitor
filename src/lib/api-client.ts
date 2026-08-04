@@ -64,10 +64,13 @@ export async function apiRequest<T = unknown>(
   };
   if (token) headers.Authorization = `Bearer ${token}`;
 
+  // Body bisa berupa string JSON (lama) MAUPUN objek mentah. JANGAN double-encode:
+  // jika sudah string, kirim apa adanya; jika objek, stringify sekali.
+  const initBody = body != null ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined;
   const init: RequestInit = {
     method,
     headers,
-    body: body != null ? JSON.stringify(body) : undefined,
+    body: initBody,
   };
 
   let response: Response;

@@ -28,27 +28,38 @@ export default function Proof() {
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
       });
-      if (res.dataUrl) setPhotoDataUrl(watermark(res.dataUrl));
+      if (res.dataUrl) setPhotoDataUrl(await watermark(res.dataUrl));
     } catch {
       // dibatalkan
     }
   }
 
-  function watermark(dataUrl: string): string {
+  async function watermark(dataUrl: string): Promise<string> {
     const img = new Image();
     img.src = dataUrl;
+    try {
+      await img.decode();
+    } catch (err) {
+      // decode() tidak tersedia di beberapa WebView — tunggu via onload
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth || 1024;
-    canvas.height = img.naturalHeight || 1024;
+    const w = img.naturalWidth || 1024;
+    const h = img.naturalHeight || 1024;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) return dataUrl;
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    ctx.font = `${Math.round(canvas.width / 30)}px sans-serif`;
+    ctx.drawImage(img, 0, 0, w, h);
+    ctx.font = `${Math.round(w / 30)}px sans-serif`;
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    const stamp = `Rumah Keripik\n${new Date().toLocaleString('id-ID')}`;
+    const stamp = `Rumah Keripik ${new Date().toLocaleTimeString('id-ID')}\n${new Date().toLocaleDateString('id-ID')}`;
     const lines = stamp.split('\n');
     lines.forEach((line, i) => {
-      ctx.fillText(line, 16, canvas.height - 16 - (lines.length - 1 - i) * (canvas.width / 28));
+      ctx.fillText(line, 16, h - 16 - (lines.length - 1 - i) * (w / 28));
     });
     return canvas.toDataURL('image/jpeg', 0.85);
   }
