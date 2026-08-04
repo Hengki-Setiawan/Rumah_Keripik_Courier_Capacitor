@@ -20,6 +20,7 @@ import ProofPage from '@/pages/delivery/[id]/Proof';
 import BatteryGuidePage from '@/pages/battery-guide/BatteryGuide';
 import LockScreen from '@/pages/lock/LockScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import { OfferSheet } from '@/components/OfferSheet';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,6 +90,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/*" element={<Protected />} />
         </Routes>
+        <OfferSheet />
       </BrowserRouter>
     </QueryClientProvider>
   );

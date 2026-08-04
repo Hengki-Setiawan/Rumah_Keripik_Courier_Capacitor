@@ -7,18 +7,39 @@ import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { getCurrentPosition } from '@/lib/location';
 
-const INCIDENT_OPTIONS = [
+type ServerIncidentType = 'kecelakaan' | 'kendaraan_mogok' | 'cuaca_ekstrem' | 'keamanan' | 'kesehatan' | 'lainnya';
+
+interface IncidentOption {
+  label: string;
+  value: string;
+  severity: 'low' | 'medium' | 'high';
+}
+
+const INCIDENT_OPTIONS: IncidentOption[] = [
   { label: 'Kecelakaan', value: 'kecelakaan', severity: 'high' },
   { label: 'Kendaraan Mogok', value: 'kendaraan_mogok', severity: 'medium' },
-  { label: 'Ban Bocor', value: 'kendaraan_mogok', severity: 'medium' },
-  { label: 'Kehabisan Bahan Bakar', value: 'kendaraan_mogok', severity: 'low' },
+  { label: 'Ban Bocor', value: 'ban_bocor', severity: 'medium' },
+  { label: 'Kehabisan Bahan Bakar', value: 'habis_bbm', severity: 'low' },
+  { label: 'Cuaca Ekstrem', value: 'cuaca_ekstrem', severity: 'medium' },
+  { label: 'Keamanan', value: 'keamanan', severity: 'high' },
+  { label: 'Kesehatan', value: 'kesehatan', severity: 'high' },
   { label: 'Lainnya', value: 'lainnya', severity: 'medium' },
 ];
 
-type IncidentType = 'kecelakaan' | 'kendaraan_mogok' | 'cuaca_ekstrem' | 'keamanan' | 'kesehatan' | 'lainnya';
+// Memetakan pilihan lokal ke enum server (server hanya menerima 6 nilai tetap).
+const TO_SERVER_TYPE: Record<string, ServerIncidentType> = {
+  kecelakaan: 'kecelakaan',
+  kendaraan_mogok: 'kendaraan_mogok',
+  cuaca_ekstrem: 'cuaca_ekstrem',
+  keamanan: 'keamanan',
+  kesehatan: 'kesehatan',
+  ban_bocor: 'lainnya',
+  habis_bbm: 'lainnya',
+  lainnya: 'lainnya',
+};
 
 export default function Incidents() {
-  const [selected, setSelected] = useState(INCIDENT_OPTIONS[0]);
+  const [selected, setSelected] = useState<IncidentOption>(INCIDENT_OPTIONS[0]);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -26,7 +47,7 @@ export default function Incidents() {
   async function submit() {
     setSubmitting(true);
     const payload: Record<string, unknown> = {
-      type: selected.value as IncidentType,
+      type: TO_SERVER_TYPE[selected.value],
       severity: selected.severity,
       description,
     };

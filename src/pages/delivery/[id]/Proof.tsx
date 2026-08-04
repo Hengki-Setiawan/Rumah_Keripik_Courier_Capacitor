@@ -39,7 +39,7 @@ export default function Proof() {
     img.src = dataUrl;
     try {
       await img.decode();
-    } catch (err) {
+    } catch {
       // decode() tidak tersedia di beberapa WebView — tunggu via onload
       await new Promise((resolve, reject) => {
         img.onload = resolve;

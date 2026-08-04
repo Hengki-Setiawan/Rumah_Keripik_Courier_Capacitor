@@ -31,7 +31,11 @@ export async function registerPushToken(token: string): Promise<void> {
  * - Pasang listener tawaran real-time / notifikasi
  * Callback `onOffer` dipanggil saat tawaran pengiriman baru diterima.
  */
-export async function initPushNotifications(opts: { onOffer?: (data: { deliveryId?: number | string; assignmentId?: number | string }) => void } = {}): Promise<void> {
+export interface PushNotificationOptions {
+  onOffer?: (data: { deliveryId?: number | string; assignmentId?: number | string }) => void;
+}
+
+export async function initPushNotifications(opts: PushNotificationOptions = {}): Promise<void> {
   if (!isNative) return;
 
   const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');

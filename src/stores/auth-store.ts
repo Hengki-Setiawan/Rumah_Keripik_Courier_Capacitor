@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { STORAGE_KEYS, getJson, secureStorage, setJson } from '@/lib/storage';
 import { fetchMe, loginWithPin, logoutRemote } from '@/lib/api-client';
-import { initPushNotifications, unregisterPushToken } from '@/lib/notifications';
+import { initPushNotifications, unregisterPushToken, type PushNotificationOptions } from '@/lib/notifications';
 import { setupLiveUpdate } from '@/lib/live-update';
+import { useOfferStore } from '@/stores/offer-store';
 import type { CourierDto } from '@/lib/types';
 import { getOrCreateDeviceId } from '@/lib/device';
 
@@ -20,6 +21,18 @@ interface AuthState {
   setCourier: (c: CourierDto | null) => void;
 }
 
+function notifOpts(): PushNotificationOptions {
+  return {
+    onOffer: (data) => {
+      useOfferStore.getState().presentOffer({
+        deliveryId: data.deliveryId,
+        assignmentId: data.assignmentId,
+        receivedAt: new Date().toISOString(),
+      });
+    },
+  };
+}
+
 export const useAuthStore = create<AuthState>((set) => ({
   courier: null,
   isAuthenticated: false,
@@ -28,6 +41,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   loginError: null,
 
   async bootstrap() {
+    useOfferStore.setState({ offer: null, busy: false, error: null });
     set({ isBootstrapping: true });
     try {
       const pinEnabled = (await secureStorage.get(STORAGE_KEYS.pinEnabled)) === 'true';
@@ -40,11 +54,11 @@ export const useAuthStore = create<AuthState>((set) => ({
           .then((fresh) => {
             set({ courier: fresh });
             setJson(STORAGE_KEYS.courierProfile, fresh);
-            void initPushNotifications();
+            void initPushNotifications(notifOpts());
             void setupLiveUpdate({ courierId: fresh.id });
           })
           .catch(() => {
-            void initPushNotifications();
+            void initPushNotifications(notifOpts());
             void setupLiveUpdate({ courierId: courier.id });
           });
       } else {
@@ -65,7 +79,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       await setJson(STORAGE_KEYS.courierProfile, result.courier);
       const pinEnabled = (await secureStorage.get(STORAGE_KEYS.pinEnabled)) === 'true';
       set({ isAuthenticated: true, courier: result.courier, pinEnabled });
-      void initPushNotifications();
+      void initPushNotifications(notifOpts());
       void setupLiveUpdate({ courierId: result.courier.id });
       return { ok: true };
     } catch (e) {
@@ -84,6 +98,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   async logout() {
     await logoutRemote();
     await unregisterPushToken();
+    useOfferStore.setState({ offer: null, busy: false, error: null });
     set({ isAuthenticated: false, courier: null });
   },
 
