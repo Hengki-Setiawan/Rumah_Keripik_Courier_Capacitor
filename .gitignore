@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Web build output
+dist/
+*.tsbuildinfo
+
+# Android native project — DI-COMMIT (blueprint IV), hanya ignore build artifacts
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+android/.idea/
+android/**/*.log
+
+# Env & secrets (tidak pernah commit)
+.env
+.env.*
+!.env.example
+
+# Tests & tooling
+coverage/
+playwright-report/
+test-results/
+
+# OS
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,165 @@
+@import 'tailwindcss';
+
+:root {
+  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme='dark'] {
+  --surface-base: #120f0d;
+  --surface-raised: #1a1613;
+  --surface-overlay: #25201b;
+  --surface-highest: #332921;
+
+  --border-subtle: rgba(240, 230, 219, 0.06);
+  --border-default: rgba(240, 230, 219, 0.12);
+  --border-strong: rgba(240, 230, 219, 0.22);
+  --border-accent: #c55a2b;
+
+  --text-primary: #faf6ef;
+  --text-secondary: rgba(240, 230, 219, 0.68);
+  --text-muted: rgba(240, 230, 219, 0.42);
+  --text-on-accent: #120f0d;
+  --text-on-danger: #ffffff;
+
+  --action-primary: #c55a2b;
+  --action-primary-hover: #dd8a45;
+  --action-primary-pressed: #ae4d23;
+  --action-primary-subtle: rgba(197, 90, 43, 0.16);
+
+  --status-success: #8db34a;
+  --status-success-subtle: rgba(127, 159, 62, 0.18);
+  --status-danger: #dc2626;
+  --status-danger-subtle: rgba(220, 38, 38, 0.16);
+  --status-warning: #ecc373;
+  --status-warning-subtle: rgba(217, 164, 65, 0.16);
+  --status-info: #93c5e8;
+  --status-info-subtle: rgba(61, 126, 166, 0.16);
+
+  --glow-accent: rgba(197, 90, 43, 0.45);
+  --glow-danger: rgba(220, 38, 38, 0.5);
+  --glow-success: rgba(95, 122, 46, 0.4);
+
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  --surface-base: #faf6ef;
+  --surface-raised: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-highest: #fdf3ea;
+
+  --border-subtle: rgba(47, 36, 28, 0.04);
+  --border-default: #f0dfca;
+  --border-strong: #dfc5a8;
+  --border-accent: #c55a2b;
+
+  --text-primary: #4a3d33;
+  --text-secondary: #6f5d4f;
+  --text-muted: #a08973;
+  --text-on-accent: #ffffff;
+  --text-on-danger: #ffffff;
+
+  --action-primary: #c55a2b;
+  --action-primary-hover: #ae4d23;
+  --action-primary-pressed: #8a3c1b;
+  --action-primary-subtle: #fde8d9;
+
+  --status-success: #4f6a24;
+  --status-success-subtle: rgba(127, 159, 62, 0.18);
+  --status-danger: #c0392b;
+  --status-danger-subtle: #fef2f2;
+  --status-warning: #b8842a;
+  --status-warning-subtle: rgba(217, 164, 65, 0.14);
+  --status-info: #2f6485;
+  --status-info-subtle: rgba(61, 126, 166, 0.1);
+
+  --glow-accent: transparent;
+  --glow-danger: transparent;
+  --glow-success: transparent;
+
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface-base);
+  color: var(--text-primary);
+  overscroll-behavior: none;
+}
+
+@theme inline {
+  --color-surface-base: var(--surface-base);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-highest: var(--surface-highest);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-accent: var(--border-accent);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-on-accent: var(--text-on-accent);
+  --color-text-on-danger: var(--text-on-danger);
+
+  --color-action-primary: var(--action-primary);
+  --color-action-hover: var(--action-primary-hover);
+  --color-action-pressed: var(--action-primary-pressed);
+  --color-action-subtle: var(--action-primary-subtle);
+
+  --color-status-success: var(--status-success);
+  --color-status-success-subtle: var(--status-success-subtle);
+  --color-status-danger: var(--status-danger);
+  --color-status-danger-subtle: var(--status-danger-subtle);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-subtle: var(--status-warning-subtle);
+  --color-status-info: var(--status-info);
+  --color-status-info-subtle: var(--status-info-subtle);
+
+  --color-glow-accent: var(--glow-accent);
+  --color-glow-danger: var(--glow-danger);
+  --color-glow-success: var(--glow-success);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --text-display: 34px;
+  --text-display--line-height: 40px;
+  --text-display--font-weight: 800;
+  --text-h1: 24px;
+  --text-h1--line-height: 30px;
+  --text-h1--font-weight: 700;
+  --text-h2: 19px;
+  --text-h2--line-height: 25px;
+  --text-h2--font-weight: 700;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  input,
+  textarea {
+    font-family: inherit;
+    font-size: inherit;
+  }
+}
