@@ -91,6 +91,16 @@ export interface IncidentItem {
   description: string | null;
 }
 
+export interface AttendanceRecord {
+  id: number;
+  clockInAt: string | null;
+  clockInWithinGeofence: number | null;
+  clockOutAt: string | null;
+  clockOutWithinGeofence: number | null;
+  totalWorkMinutes: number | null;
+  status: string;
+}
+
 export interface ShiftState {
   id: number;
   status: 'active' | 'ended' | 'forced_end';

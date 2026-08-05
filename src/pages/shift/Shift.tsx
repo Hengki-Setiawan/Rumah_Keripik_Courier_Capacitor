@@ -1,17 +1,33 @@
 import { useEffect, useState } from 'react';
-import { TimerReset, MapPin, Clock3, Play, Square } from 'lucide-react';
+import { TimerReset, MapPin, Clock3, Play, Square, CalendarCheck2, AlertTriangle } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { apiRequest } from '@/lib/api-client';
+import { apiRequest, ApiError } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { getCurrentPosition } from '@/lib/location';
 import { startLocationTracking, stopLocationTracking } from '@/lib/background-location';
 import { formatTime } from '@/lib/format';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
+import type { AttendanceRecord } from '@/lib/types';
 
 interface ClockInResponse {
   ok: boolean;
-  data: { shiftId: number; clockInAt: string };
+  data: {
+    shiftId: number;
+    clockInAt: string;
+    geofence?: {
+      inside: boolean;
+      distanceMeters: number;
+      warehouseName: string | null;
+      zoneName: string | null;
+    } | null;
+  };
+}
+
+interface AttendanceResponse {
+  ok: boolean;
+  data: { attendance: AttendanceRecord[] };
 }
 
 export default function Shift() {
@@ -20,15 +36,29 @@ export default function Shift() {
   const [shiftId, setShiftId] = useState<number | null>(null);
   const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const [geofence, setGeofence] = useState<ClockInResponse['data']['geofence']>(null);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+
+  async function loadAttendance() {
+    try {
+      const res = await apiRequest<AttendanceResponse>('/api/courier/attendance?limit=7', { method: 'GET' });
+      setAttendance(res.data?.attendance ?? []);
+    } catch {
+      setAttendance([]);
+    }
+  }
 
   useEffect(() => {
     getCurrentPosition()
       .then((p) => { if (p) setLoc({ lat: p.lat, lng: p.lng }); })
       .catch(() => undefined);
+    loadAttendance();
   }, []);
 
   async function clockIn() {
     setBusy(true);
+    setGeoError(null);
     try {
       const payload: Record<string, unknown> = {};
       if (loc) {
@@ -41,9 +71,21 @@ export default function Shift() {
       });
       setShiftId(res.data.shiftId);
       setClockedAt(res.data.clockInAt);
+      setGeofence(res.data.geofence ?? null);
       setIsActive(true);
+      await hapticNotification('success');
       await startLocationTracking();
-    } catch {
+      loadAttendance();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) {
+        setGeoError(
+          err.details && typeof err.details === 'object' && 'message' in err.details
+            ? String((err.details as { message: unknown }).message)
+            : 'Lokasi di luar batas radius gudang.',
+        );
+        await hapticNotification('error');
+        return;
+      }
       await enqueueAction({
         entityType: 'shift',
         entityId: 'clock-in',
@@ -52,6 +94,8 @@ export default function Shift() {
       });
       setIsActive(true);
       setClockedAt(new Date().toISOString());
+      setGeofence(null);
+      await hapticImpact('light');
       await startLocationTracking();
     } finally {
       setBusy(false);
@@ -60,6 +104,7 @@ export default function Shift() {
 
   async function clockOut() {
     setBusy(true);
+    setGeoError(null);
     try {
       const payload: Record<string, unknown> = {};
       if (loc) {
@@ -67,6 +112,7 @@ export default function Shift() {
         payload.lng = loc.lng;
       }
       await apiRequest('/api/courier/shift/clock-out', { method: 'POST', body: JSON.stringify(payload) });
+      await hapticNotification('success');
     } catch {
       await enqueueAction({
         entityType: 'shift',
@@ -74,14 +120,19 @@ export default function Shift() {
         action: 'clock-out',
         payload: { shiftId },
       });
+      await hapticImpact('light');
     } finally {
       await stopLocationTracking();
       setIsActive(false);
       setShiftId(null);
       setClockedAt(null);
+      setGeofence(null);
       setBusy(false);
+      loadAttendance();
     }
   }
+
+  const lastGeo = attendance[0];
 
   return (
     <AppShell title="Shift">
@@ -102,6 +153,32 @@ export default function Shift() {
           </div>
         </Card>
 
+        {geoError && (
+          <Card className="border-red-600/40 bg-red-950/30">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-400" />
+              <div>
+                <p className="text-sm font-semibold text-red-200">Lokasi di luar batas</p>
+                <p className="mt-1 text-xs text-red-300">{geoError}</p>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {geofence && geofence.zoneName && (
+          <Card>
+            <div className="flex items-center gap-3">
+              <MapPin className="size-5 text-emerald-500" />
+              <div>
+                <p className="text-xs text-umber-400">Zona absensi</p>
+                <p className="text-sm font-semibold text-umber-100">
+                  {geofence.zoneName || geofence.warehouseName || 'Gudang'}
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         <Card>
           <div className="flex items-center gap-3">
             <MapPin className="size-5 text-umber-400" />
@@ -114,7 +191,7 @@ export default function Shift() {
           </div>
         </Card>
 
-<Card>
+        <Card>
           <div className="flex items-center gap-3">
             <Clock3 className="size-5 text-umber-400" />
             <div>
@@ -147,6 +224,37 @@ export default function Shift() {
           {isActive ? <Square className="size-5" /> : <Play className="size-5" />}
           {isActive ? 'Akhiri Shift' : 'Mulai Shift'}
         </Button>
+
+        <Card>
+          <div className="mb-3 flex items-center gap-3">
+            <CalendarCheck2 className="size-5 text-amber-500" />
+            <div>
+              <p className="text-sm font-semibold text-umber-100">Rekap Absensi</p>
+              <p className="text-xs text-umber-400">
+                {lastGeo
+                  ? lastGeo.clockOutAt
+                    ? `Terakhir ${formatTime(lastGeo.clockInAt)} - ${formatTime(lastGeo.clockOutAt)}`
+                    : `Masuk ${formatTime(lastGeo.clockInAt)}${lastGeo.status === 'flagged_no_geofence' ? ' (luar zona)' : ''}`
+                  : 'Belum ada catatan absensi'}
+              </p>
+            </div>
+          </div>
+          {attendance.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              {attendance.slice(0, 5).map((a) => (
+                <div key={a.id} className="flex items-center justify-between border-t border-umber-800 pt-1.5 text-xs">
+                  <span className="text-umber-300">
+                    {formatTime(a.clockInAt)}
+                    {a.clockOutAt ? ` - ${formatTime(a.clockOutAt)}` : ' - sekarang'}
+                  </span>
+                  <span className="text-umber-500">
+                    {a.status === 'flagged_no_geofence' ? 'Luar zona' : a.clockOutAt ? 'Selesai' : 'Berjalan'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
 
         <p className="text-center text-[11px] text-umber-500">
           Jika offline, aksi shift akan disimpan dan dikirim otomatis saat kembali online.
