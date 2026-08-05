@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth-store';
 import { cn } from '@/lib/cn';
 import { Spinner } from '@/components/ui/Button';
@@ -6,10 +7,16 @@ import { Spinner } from '@/components/ui/Button';
 const PIN_LENGTH = 6;
 
 export default function Login() {
+  const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const loginError = useAuthStore((s) => s.loginError);
   const [pin, setPin] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) navigate('/', { replace: true });
+  }, [isAuthenticated, navigate]);
 
   async function pressDigit(d: string) {
     if (pin.length >= PIN_LENGTH || submitting) return;
