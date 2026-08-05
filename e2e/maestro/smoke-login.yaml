@@ -1,0 +1,23 @@
+appId: com.rumahkeripik.courier
+name: Smoke Login Screen
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+- extendedWaitUntil:
+    visible: "Masukkan PIN untuk masuk"
+    timeout: 60000
+- assertVisible: "Masukkan PIN untuk masuk"
+- tapOn: "1"
+- tapOn: "1"
+- tapOn: "1"
+- tapOn: "1"
+- tapOn: "1"
+- tapOn: "1"
+- extendedWaitUntil:
+    visible: "Data tidak valid"
+    timeout: 30000
+- assertVisible: "Data tidak valid"
+- takeScreenshot: "smoke_login_error"
