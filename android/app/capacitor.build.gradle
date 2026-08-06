@@ -14,7 +14,6 @@ dependencies {
     implementation project(':capacitor-firebase-messaging')
     implementation project(':capacitor-camera')
     implementation project(':capacitor-geolocation')
-    implementation project(':capacitor-google-maps')
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-preferences')
     implementation project(':capgo-capacitor-updater')

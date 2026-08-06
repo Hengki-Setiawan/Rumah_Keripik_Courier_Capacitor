@@ -1,7 +1,5 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
-const googleMapsApiKey = (process.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined) ?? '';
-
 const config: CapacitorConfig = {
   appId: 'com.rumahkeripik.courier',
   appName: 'Rumah Keripik Kurir',
@@ -29,9 +27,6 @@ const config: CapacitorConfig = {
       autoDeleteFailed: true,
       autoDeletePrevious: true,
       directUpdate: 'onLaunch',
-    },
-    GoogleMaps: {
-      androidApiKey: googleMapsApiKey,
     },
   },
 };
