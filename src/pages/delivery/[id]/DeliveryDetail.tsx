@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapPin, Phone, MessageCircle, User, ArrowLeft, Wallet } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, CreditCard } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -19,10 +19,10 @@ export default function DeliveryDetail() {
   const [busy, setBusy] = useState(false);
 
   if (isLoading && !delivery) {
-    return <AppShell title="Detail Pengiriman"><Card><p className="text-center text-sm text-umber-400 py-6">Memuat...</p></Card></AppShell>;
+    return <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}><Card><p className="text-center text-sm text-umber-400 py-6">Memuat...</p></Card></AppShell>;
   }
   if (!delivery) {
-    return <AppShell title="Detail Pengiriman"><Card><p className="text-center text-sm text-red-400 py-6">Pengiriman tidak ditemukan.</p></Card></AppShell>;
+    return <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}><Card><p className="text-center text-sm text-red-400 py-6">Pengiriman tidak ditemukan.</p></Card></AppShell>;
   }
 
   async function transition(status: 'start' | 'arrived' | 'complete') {
@@ -49,12 +49,8 @@ export default function DeliveryDetail() {
   }
 
   return (
-    <AppShell title="Detail Pengiriman">
+    <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-1 text-xs text-amber-500">
-          <ArrowLeft className="size-3.5" /> Kembali
-        </button>
-
         <Card elevation={2}>
           <div className="flex items-center justify-between">
             <div>
@@ -70,6 +66,23 @@ export default function DeliveryDetail() {
               <Wallet className="size-4 text-umber-400" /> {formatCurrency(delivery.totalBayar)}
             </div>
           )}
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-umber-500">
+            {delivery.routePoints.length > 0 && (
+              <span className="flex items-center gap-1">
+                <Hash className="size-3" /> Rute ke-{delivery.routePoints[0].sequenceNo} dari {delivery.routePoints.length}
+              </span>
+            )}
+            {delivery.totalQty ? (
+              <span className="flex items-center gap-1">
+                <Package className="size-3" /> {delivery.totalQty} item
+              </span>
+            ) : null}
+            {delivery.totalBeratGram ? (
+              <span className="flex items-center gap-1">
+                <Scale className="size-3" /> {formatBerat(delivery.totalBeratGram)}
+              </span>
+            ) : null}
+          </div>
         </Card>
 
         <Card>
@@ -91,6 +104,32 @@ export default function DeliveryDetail() {
           <p className="mt-1 text-[11px] text-umber-500">Dipesan {formatDateTime(delivery.createdAt)}</p>
         </Card>
 
+        {delivery.items && delivery.items.length > 0 && (
+          <Card>
+            <div className="mb-2 flex items-center gap-1.5">
+              <Package className="size-4 text-umber-400" />
+              <p className="text-xs font-semibold text-umber-400">Rincian Pesanan</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {delivery.items.map((item, idx) => (
+                <div key={idx} className="flex items-start justify-between gap-2 border-b border-umber-800 pb-2 last:border-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-umber-100">
+                      {item.namaProduk || 'Produk'}
+                      {item.varian ? <span className="text-umber-500"> · {item.varian}</span> : null}
+                    </p>
+                    <p className="text-xs text-umber-400">
+                      {item.qty} × {formatCurrency(item.harga)}
+                      {item.beratGram ? ` · ${item.beratGram} g` : ''}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-sm font-semibold text-umber-100">{formatCurrency(item.subtotal)}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
         {delivery.noHpPenerima && (
           <div className="grid grid-cols-2 gap-3">
             <a
@@ -109,6 +148,38 @@ export default function DeliveryDetail() {
             </a>
           </div>
         )}
+
+        <Card>
+          <div className="flex flex-col gap-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-umber-400">
+                <CreditCard className="size-4" /> Pembayaran
+              </span>
+              <span className="font-medium text-umber-100">
+                {paymentLabel(delivery.statusPembayaran || delivery.paymentStatus)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-umber-400">Total Item</span>
+              <span className="font-medium text-umber-100">{delivery.totalQty ?? delivery.items?.length ?? 0} item</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-umber-400">Total Berat</span>
+              <span className="font-medium text-umber-100">
+                {delivery.totalBeratGram ? formatBerat(delivery.totalBeratGram) : '-'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-umber-400">Subtotal</span>
+              <span className="font-semibold text-amber-500">{formatCurrency(delivery.totalBayar)}</span>
+            </div>
+            {delivery.notes && (
+              <div className="border-t border-umber-800 pt-2 text-xs text-umber-500">
+                Catatan kurir: {delivery.notes}
+              </div>
+            )}
+          </div>
+        </Card>
 
         <div className="flex flex-col gap-2">
           {delivery.status === 'Siap_Dikirim' ? (
@@ -142,4 +213,31 @@ function statusBadge(s: string): string {
     default:
       return 'bg-umber-700/40 text-umber-300';
   }
+}
+
+function paymentLabel(s: string | null | undefined): string {
+  switch (s) {
+    case 'Lunas':
+    case 'paid':
+    case 'Paid':
+      return 'Lunas';
+    case 'Piutang':
+      return 'Piutang';
+    case 'Tidak_Lunas':
+      return 'Belum Lunas';
+    case 'Menunggu_Verifikasi':
+    case 'Menunggu_Bayar':
+    case 'unpaid':
+    case 'Unpaid':
+      return 'Menunggu Pembayaran';
+    case 'Dibatalkan':
+      return 'Dibatalkan';
+    default:
+      return s || '-';
+  }
+}
+
+function formatBerat(gram: number): string {
+  if (gram >= 1000) return `${(gram / 1000).toLocaleString('id-ID', { maximumFractionDigits: 2 })} kg`;
+  return `${gram} g`;
 }

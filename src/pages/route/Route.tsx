@@ -1,121 +1,91 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Navigation, ArrowRight, RefreshCw } from 'lucide-react';
-import { AppShell } from '@/components/AppShell';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { useTodayDeliveries } from '@/hooks/use-deliveries';
-import { apiRequest } from '@/lib/api-client';
-import NativeRouteMap from '@/components/ui/NativeRouteMap';
-import type { RouteWaypoint } from '@/lib/types';
-
-interface OptimizeResponse {
-  ok: boolean;
-  data: { waypoints: RouteWaypoint[]; totalStops: number; totalEstimatedKm: number };
-}
+import { RefreshCw, Bell, Crosshair } from 'lucide-react';
+import { RouteMap } from '@/components/ui/RouteMap';
+import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
+import { FAB } from '@/components/ui/FAB';
+import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
+import { useUserLocation } from '@/hooks/useUserLocation';
+import type { SnapPoint } from '@/components/ui/BottomSheet';
 
 function openNavigation(lat: number, lng: number) {
-  window.location.href = `google.navigation:q=${lat},${lng}`;
+  const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === 'MacIntel';
+  const url = isApple
+    ? `maps://maps.google.com/?daddr=${lat},${lng}`
+    : `google.navigation:q=${lat},${lng}`;
+  window.location.href = url;
 }
 
 export default function Route() {
   const navigate = useNavigate();
-  const { data: deliveries, isLoading } = useTodayDeliveries();
-  const [optimized, setOptimized] = useState<RouteWaypoint[] | null>(null);
-  const [optimizing, setOptimizing] = useState(false);
+  const { data: route, isLoading, refetch, isFetching } = useOptimizedRoute();
+  const userLocation = useUserLocation();
+  const [snap, setSnap] = useState<SnapPoint>('peek');
+  const [activeStopIndex, setActiveStopIndex] = useState(0);
+  const [mapBump, setMapBump] = useState(0);
 
-  async function optimize() {
-    if (!deliveries || deliveries.length === 0) return;
-    setOptimizing(true);
-    try {
-      const res = await apiRequest<OptimizeResponse>('/api/courier/route/optimize', {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
-      setOptimized(res.data.waypoints ?? []);
-    } finally {
-      setOptimizing(false);
+  const activeStop = route?.orderedStops[activeStopIndex];
+  const activeLat = activeStop?.lat;
+  const activeLng = activeStop?.lng;
+
+  function handleStopMarkerPress(deliveryId: string) {
+    const idx = route?.orderedStops.findIndex((s) => s.deliveryId === deliveryId) ?? -1;
+    if (idx >= 0) {
+      setActiveStopIndex(idx);
+      if (snap === 'peek') setSnap('half');
     }
   }
 
-  function lookupName(deliveryId: number): string | undefined {
-    return deliveries?.find((d) => d.id === deliveryId)?.customer_name;
-  }
-
-  const fallback: RouteWaypoint[] = (deliveries ?? []).map((d, i) => ({
-    deliveryId: d.id,
-    sequence: (d.route_order ?? i + 1),
-    lat: d.latitude ? Number(d.latitude) : 0,
-    lng: d.longitude ? Number(d.longitude) : 0,
-    customerName: d.customer_name,
-  }));
-
-  const waypoints = optimized ?? fallback;
-  const hasCoords = (w: RouteWaypoint) => w.lat !== 0 && w.lng !== 0;
-
   return (
-    <AppShell title="Rute Hari Ini">
-      <div className="flex flex-col gap-4">
-        <Card elevation={2} className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-semibold text-umber-100">Rute Pengiriman</p>
-            <p className="mt-0.5 text-xs text-umber-400">{waypoints.length} titik pemberhentian</p>
-          </div>
-          <Button variant="secondary" size="sm" loading={optimizing} onClick={optimize}>
-            <RefreshCw className="size-4" /> Optimalkan
-          </Button>
-        </Card>
+    <div className="relative h-dvh w-full overflow-hidden bg-surface">
+      <RouteMap
+        key={mapBump}
+        route={route ?? null}
+        activeStopIndex={activeStopIndex}
+        onStopMarkerPress={handleStopMarkerPress}
+        userLocation={userLocation}
+      />
 
-        <NativeRouteMap waypoints={waypoints} />
-
-        {isLoading && !deliveries ? (
-          <Card><p className="text-center text-sm text-umber-400 py-6">Memuat...</p></Card>
-        ) : waypoints.length === 0 ? (
-          <Card>
-            <EmptyState
-              icon={<Navigation className="size-6" />}
-              title="Tidak ada rute"
-              description="Tidak ada pengiriman untuk hari ini."
-            />
-          </Card>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {[...waypoints]
-              .sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
-              .map((w, i) => {
-                const name = w.customerName ?? lookupName(w.deliveryId) ?? 'Pelanggan';
-                return (
-                  <Card key={w.deliveryId ?? i} className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-500 text-sm font-bold text-umber-950">
-                      {i + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate text-sm font-semibold text-umber-100">{name}</p>
-                      {hasCoords(w) && (
-                        <p className="mt-0.5 text-[11px] text-umber-500">
-                          {w.lat.toFixed(5)}, {w.lng.toFixed(5)}
-                        </p>
-                      )}
-                    </div>
-                    {hasCoords(w) && (
-                      <button
-                        onClick={() => openNavigation(w.lat, w.lng)}
-                        className="flex items-center gap-1 rounded-lg bg-umber-800 px-2.5 py-1.5 text-xs font-semibold text-amber-500 hover:bg-umber-700"
-                      >
-                        <Navigation className="size-3.5" /> Navigasi
-                      </button>
-                    )}
-                  </Card>
-                );
-              })}
-          </div>
-        )}
-
-        <Button variant="secondary" onClick={() => navigate('/')} fullWidth>
-          <ArrowRight className="size-4 rotate-180" /> Kembali ke Beranda
-        </Button>
+      {/* Header transparan mengambang */}
+      <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-3 bg-gradient-to-b from-black/25 to-transparent">
+        <button
+          aria-label="Kembali"
+          onClick={() => navigate('/')}
+          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
+        >
+          <RefreshCw className="size-5 rotate-180" />
+        </button>
+        <p className="text-sm font-semibold text-white drop-shadow">Rute Hari Ini</p>
+        <button
+          aria-label="Notifikasi"
+          onClick={() => navigate('/notifications')}
+          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
+        >
+          <Bell className="size-5" />
+        </button>
       </div>
-    </AppShell>
+
+      {/* Navigasi ke stop aktif */}
+      {activeLat != null && activeLng != null && (
+        <FAB
+          icon={<Crosshair className="size-6" />}
+          ariaLabel="Navigasi ke titik aktif"
+          variant="overlay"
+          className="absolute right-3 z-20 bottom-[190px]"
+          onClick={() => openNavigation(activeLat, activeLng)}
+        />
+      )}
+
+      <RouteBottomSheet
+        route={route ?? null}
+        loading={isLoading}
+        optimizing={isFetching}
+        snap={snap}
+        onSnapChange={setSnap}
+        onOptimize={() => { setMapBump((b) => b + 1); refetch(); }}
+        activeStopIndex={activeStopIndex}
+        onSelectStop={(i) => { setActiveStopIndex(i); if (snap === 'peek') setSnap('half'); }}
+      />
+    </div>
   );
 }

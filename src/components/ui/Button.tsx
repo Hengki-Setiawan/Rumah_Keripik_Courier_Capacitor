@@ -13,17 +13,17 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-amber-500 text-umber-950 hover:bg-amber-400 active:bg-amber-600 shadow-glow-amber',
-  secondary: 'bg-umber-800 text-umber-100 hover:bg-umber-700 border border-umber-700',
-  danger: 'bg-red-600 text-white hover:bg-red-500 active:bg-red-700',
-  ghost: 'bg-transparent text-umber-300 hover:bg-umber-800/60 border border-transparent',
-  success: 'bg-emerald-600 text-white hover:bg-emerald-500 active:bg-emerald-700',
+  primary: 'bg-brand text-on-accent hover:bg-brand-hover active:bg-brand-pressed shadow-card',
+  secondary: 'bg-raised text-ink hover:bg-highest active:bg-highest border border-border-subtle',
+  danger: 'bg-alert text-on-accent hover:bg-alert/90 active:bg-alert/80 shadow-card',
+  ghost: 'bg-transparent text-brand hover:bg-brand-soft active:bg-brand-soft border border-transparent',
+  success: 'bg-ok text-on-accent hover:bg-ok/90 active:bg-ok/80 shadow-card',
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm rounded-lg gap-1.5',
-  md: 'h-11 px-4 text-sm rounded-xl gap-2',
-  lg: 'h-13 px-6 text-base rounded-xl gap-2',
+  sm: 'h-9 px-3 text-sm rounded-xl gap-1.5',
+  md: 'h-12 px-5 text-[15px] rounded-2xl gap-2',
+  lg: 'h-14 px-6 text-base rounded-2xl gap-2.5',
   xl: 'h-16 px-6 text-lg rounded-2xl gap-3',
 };
 
@@ -41,8 +41,8 @@ export function Button({
     <button
       className={cn(
         'inline-flex items-center justify-center font-semibold transition-all duration-150 select-none',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500',
-        'disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+        'disabled:opacity-40 disabled:pointer-events-none active:scale-[0.98]',
         variantClasses[variant],
         sizeClasses[size],
         fullWidth && 'w-full',

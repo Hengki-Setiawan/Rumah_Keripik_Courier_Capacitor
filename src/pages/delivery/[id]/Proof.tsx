@@ -93,7 +93,7 @@ export default function Proof() {
   }
 
   return (
-    <AppShell title="Bukti Pengiriman">
+    <AppShell title="Bukti Pengiriman" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
         <Card>
           <p className="mb-2 text-xs font-semibold text-umber-400">Foto Barang / Bukti</p>

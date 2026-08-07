@@ -13,7 +13,7 @@ function applyMode(mode: ThemeMode) {
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  mode: 'dark',
+  mode: 'light',
 
   async setMode(mode) {
     applyMode(mode);
@@ -28,7 +28,8 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
 export async function initTheme(): Promise<ThemeMode> {
   const stored = await secureStorage.get(STORAGE_KEYS.themeMode);
-  const mode: ThemeMode = stored === 'light' ? 'light' : 'dark';
+  // Default light ("Kripik Fresh") — dark mode fallback to stored if user pinned it.
+  const mode: ThemeMode = stored === 'dark' ? 'dark' : 'light';
   applyMode(mode);
   useThemeStore.setState({ mode });
   return mode;

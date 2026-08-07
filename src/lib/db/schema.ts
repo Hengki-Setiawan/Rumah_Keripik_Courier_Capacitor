@@ -43,6 +43,12 @@ export const locationBuffer = sqliteTable('location_buffer', {
   synced: integer('synced').default(0),
 });
 
+export const routeCacheTable = sqliteTable('route_cache', {
+  cacheKey: text('cache_key').primaryKey(),
+  payloadJson: text('payload_json').notNull(),
+  savedAt: integer('saved_at').notNull(),
+});
+
 export const appMeta = sqliteTable('app_meta', {
   key: text('key').primaryKey(),
   value: text('value'),

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { BatteryCharging, Smartphone, Wifi, MapPin } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
@@ -69,29 +70,30 @@ const BRANDS: Array<{ name: string; steps: string[] }> = [
 ];
 
 export default function BatteryGuide() {
+  const navigate = useNavigate();
   return (
-    <AppShell title="Tips Hemat Baterai">
+    <AppShell title="Tips Hemat Baterai" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
         {TIPS.map((t) => (
           <Card key={t.title}>
             <div className="flex items-start gap-3">
-              <t.icon className="mt-0.5 size-5 shrink-0 text-amber-500" />
+              <t.icon className="mt-0.5 size-5 shrink-0 text-brand" />
               <div>
-                <p className="text-sm font-semibold text-umber-100">{t.title}</p>
-                <p className="mt-1 text-xs text-umber-400">{t.body}</p>
+                <p className="text-sm font-semibold text-ink">{t.title}</p>
+                <p className="mt-1 text-xs text-ink-muted">{t.body}</p>
               </div>
             </div>
           </Card>
         ))}
 
-        <h3 className="mt-2 text-sm font-bold text-umber-200">Panduan per Merek</h3>
+        <h3 className="mt-2 text-sm font-bold text-ink">Panduan per Merek</h3>
         {BRANDS.map((b) => (
           <Card key={b.name}>
-            <p className="mb-2 text-sm font-semibold text-umber-100">{b.name}</p>
+            <p className="mb-2 text-sm font-semibold text-ink">{b.name}</p>
             <ol className="flex flex-col gap-1.5">
               {b.steps.map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-xs text-umber-400">
-                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-umber-800 text-[10px] font-bold text-amber-500">
+                <li key={i} className="flex items-start gap-2 text-xs text-ink-muted">
+                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-raised text-[10px] font-bold text-brand">
                     {i + 1}
                   </span>
                   {s}

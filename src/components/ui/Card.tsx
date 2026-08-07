@@ -11,9 +11,9 @@ interface CardProps {
 }
 
 const elevationClasses: Record<1 | 2 | 3, string> = {
-  1: 'bg-umber-900/80 border border-umber-700/60',
-  2: 'bg-umber-900/90 border border-umber-700 shadow-lg shadow-black/20',
-  3: 'bg-umber-900 border border-umber-600/80 shadow-xl shadow-black/30',
+  1: 'bg-raised shadow-card',
+  2: 'bg-raised shadow-card-lg',
+  3: 'bg-raised shadow-card-lg ring-1 ring-brand/20',
 };
 
 const paddingClasses: Record<'none' | 'sm' | 'md' | 'lg', string> = {
@@ -28,10 +28,10 @@ export function Card({ children, className, elevation = 1, padding = 'md', inter
     <div
       onClick={onClick}
       className={cn(
-        'rounded-2xl',
+        'rounded-[20px]',
         elevationClasses[elevation],
         paddingClasses[padding],
-        interactive && 'cursor-pointer transition-transform active:scale-[0.99] hover:border-amber-600/60',
+        interactive && 'cursor-pointer transition-all duration-150 active:scale-[0.99] active:shadow-xs hover:shadow-card-lg',
         className,
       )}
     >

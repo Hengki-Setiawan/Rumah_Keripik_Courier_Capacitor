@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MapPin } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
@@ -39,6 +40,7 @@ const TO_SERVER_TYPE: Record<string, ServerIncidentType> = {
 };
 
 export default function Incidents() {
+  const navigate = useNavigate();
   const [selected, setSelected] = useState<IncidentOption>(INCIDENT_OPTIONS[0]);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -72,26 +74,26 @@ export default function Incidents() {
   }
 
   return (
-    <AppShell title="Lapor Insiden">
+    <AppShell title="Lapor Insiden" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
-        <Card className="border-amber-500/30 bg-amber-500/5">
+        <Card className="border-brand/30 bg-brand-soft">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="size-5 text-amber-500" />
-            <p className="text-xs text-umber-300">
+            <AlertTriangle className="size-5 text-brand" />
+            <p className="text-xs text-ink-secondary">
               Laporkan kendala selama pengiriman. Laporan dikirim ke admin beserta lokasi Anda.
             </p>
           </div>
         </Card>
 
         <Card>
-          <p className="mb-2 text-xs font-medium text-umber-400">Jenis Insiden</p>
+          <p className="mb-2 text-xs font-medium text-ink-muted">Jenis Insiden</p>
           <div className="flex flex-wrap gap-2">
             {INCIDENT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
                 onClick={() => setSelected(opt)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  selected.value === opt.value ? 'bg-amber-500 text-umber-950 border-amber-500' : 'bg-umber-900 border-umber-700 text-umber-300'
+                  selected.value === opt.value ? 'bg-brand text-on-accent border-brand' : 'bg-surface border-border-subtle text-ink-secondary'
                 }`}
               >
                 {opt.label}
@@ -101,20 +103,20 @@ export default function Incidents() {
         </Card>
 
         <Card>
-          <p className="mb-2 text-xs font-medium text-umber-400">Keterangan</p>
+          <p className="mb-2 text-xs font-medium text-ink-muted">Keterangan</p>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Jelaskan insiden secara singkat..."
             rows={4}
-            className="w-full rounded-xl border border-umber-700 bg-umber-950 p-3 text-sm text-umber-100 placeholder:text-umber-600 focus:border-amber-600 focus:outline-none"
+            className="w-full rounded-xl border border-border-subtle bg-surface p-3 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none"
           />
         </Card>
 
         <Card>
           <div className="flex items-center gap-3">
-            <MapPin className="size-5 text-umber-400" />
-            <p className="text-xs text-umber-400">Lokasi otomatis terlampir jika tersedia</p>
+            <MapPin className="size-5 text-ink-muted" />
+            <p className="text-xs text-ink-muted">Lokasi otomatis terlampir jika tersedia</p>
           </div>
         </Card>
 
@@ -123,8 +125,8 @@ export default function Incidents() {
         </Button>
 
         {done && (
-          <Card className="border-emerald-500/30 bg-emerald-500/10">
-            <p className="text-center text-sm font-semibold text-emerald-400">Laporan berhasil dikirim.</p>
+          <Card className="border-ok/30 bg-ok-soft">
+            <p className="text-center text-sm font-semibold text-ok">Laporan berhasil dikirim.</p>
           </Card>
         )}
       </div>

@@ -12,22 +12,23 @@ interface StatCardProps {
   className?: string;
 }
 
-const toneClasses: Record<StatTone, string> = {
-  amber: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-  red: 'bg-red-500/10 text-red-400 border-red-500/20',
-  blue: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+const toneClasses: Record<StatTone, { chip: string; text: string }> = {
+  amber: { chip: 'bg-brand-soft text-brand-pressed', text: 'text-brand-pressed' },
+  emerald: { chip: 'bg-ok-soft text-ok', text: 'text-ok' },
+  red: { chip: 'bg-alert-soft text-alert', text: 'text-alert' },
+  blue: { chip: 'bg-info-soft text-info', text: 'text-info' },
 };
 
 export function StatCard({ label, value, icon, tone = 'amber', hint, className }: StatCardProps) {
+  const t = toneClasses[tone];
   return (
-    <div className={cn('rounded-2xl border p-4 flex flex-col gap-3', toneClasses[tone], className)}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium opacity-80">{label}</span>
-        {icon}
+    <div className={cn('rounded-[20px] bg-raised p-4 flex flex-col gap-3 shadow-card', className)}>
+      <div className={cn('flex size-10 items-center justify-center rounded-full', t.chip, t.text)}>{icon}</div>
+      <div>
+        <span className="text-2xl font-bold tracking-tight text-ink">{value}</span>
+        <p className="mt-0.5 text-sm text-ink-secondary">{label}</p>
+        {hint && <span className="text-[11px] text-ink-muted">{hint}</span>}
       </div>
-      <span className="text-2xl font-bold tracking-tight">{value}</span>
-      {hint && <span className="text-[11px] opacity-70">{hint}</span>}
     </div>
   );
 }

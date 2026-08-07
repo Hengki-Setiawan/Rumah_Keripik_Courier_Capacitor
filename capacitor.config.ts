@@ -13,7 +13,12 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 1000,
-      backgroundColor: '#120f0d',
+      backgroundColor: '#faf7f4',
+    },
+    StatusBar: {
+      style: 'LIGHT',
+      backgroundColor: '#faf7f4',
+      overlaysWebView: false,
     },
     BackgroundGeolocation: {
       backgroundMessage: 'Melacak lokasi kurir. Nonaktifkan battery optimization untuk hasil terbaik.',

@@ -7,17 +7,13 @@ interface SparklineProps {
   className?: string;
 }
 
-/**
- * Mini sparkline SVG (blueprint COURIER_UI_CSS_OVERHAUL VII.5) — implementasi
- * SVG native, tanpa library tambahan.
- */
 export function Sparkline({ values, width = 280, height = 48, className }: SparklineProps) {
   const gradientId = useId();
 
   if (values.length < 2) {
     return (
       <div className={className} style={{ width, height }} aria-hidden>
-        <div className="flex h-full items-center justify-center rounded-lg border border-dashed border-umber-700/60 text-[10px] text-umber-500">
+        <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-border-subtle text-[10px] text-ink-muted">
           Data tren belum tersedia
         </div>
       </div>
@@ -42,7 +38,7 @@ export function Sparkline({ values, width = 280, height = 48, className }: Spark
     <svg viewBox={`0 0 ${width} ${height}`} className={className} width={width} height={height} role="img" aria-label="Tren pendapatan 7 hari">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#c55a2b" stopOpacity="0.35" />
+          <stop offset="0%" stopColor="#c55a2b" stopOpacity="0.3" />
           <stop offset="100%" stopColor="#c55a2b" stopOpacity="0" />
         </linearGradient>
       </defs>

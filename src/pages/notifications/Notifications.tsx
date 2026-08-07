@@ -48,9 +48,9 @@ export default function Notifications() {
   const unread = data?.unreadCount ?? 0;
 
   return (
-    <AppShell title="Notifikasi">
+    <AppShell title="Notifikasi" onBack={() => navigate(-1)}>
       <div className="flex items-center justify-between pb-2">
-        <p className="text-xs text-umber-400">{unread > 0 ? `${unread} belum dibaca` : 'Semua sudah dibaca'}</p>
+        <p className="text-xs text-ink-muted">{unread > 0 ? `${unread} belum dibaca` : 'Semua sudah dibaca'}</p>
         {unread > 0 && (
           <Button variant="ghost" size="sm" onClick={markAllRead}>
             <CheckCheck className="size-4" /> Tandai semua dibaca
@@ -59,7 +59,7 @@ export default function Notifications() {
       </div>
 
       {isLoading && !data ? (
-        <Card><p className="text-center text-sm text-umber-400 py-6">Memuat...</p></Card>
+        <Card><p className="text-center text-sm text-ink-muted py-6">Memuat...</p></Card>
       ) : list.length === 0 ? (
         <Card>
           <EmptyState
@@ -72,14 +72,14 @@ export default function Notifications() {
         <div className="flex flex-col gap-2">
           {list.map((n) => (
             <button key={n.id} onClick={() => openNotification(n)} className="text-left">
-              <Card className={cn('transition-colors', !n.isRead && 'border-amber-600/40')}>
+              <Card className={cn('transition-colors', !n.isRead && 'border-brand/40')}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
-                    <p className={cn('text-sm', n.isRead ? 'text-umber-300' : 'font-semibold text-umber-100')}>{n.title}</p>
-                    {n.body && <p className="mt-1 text-xs text-umber-400">{n.body}</p>}
-                    <p className="mt-2 text-[10px] text-umber-500">{formatDateTime(n.createdAt)}</p>
+                    <p className={cn('text-sm', n.isRead ? 'text-ink-secondary' : 'font-semibold text-ink')}>{n.title}</p>
+                    {n.body && <p className="mt-1 text-xs text-ink-muted">{n.body}</p>}
+                    <p className="mt-2 text-[10px] text-ink0">{formatDateTime(n.createdAt)}</p>
                   </div>
-                  {!n.isRead && <span className="mt-1 size-2 shrink-0 rounded-full bg-amber-500" />}
+                  {!n.isRead && <span className="mt-1 size-2 shrink-0 rounded-full bg-brand" />}
                 </div>
               </Card>
             </button>

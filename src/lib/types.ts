@@ -44,9 +44,23 @@ export interface DeliveryDetail {
   alamatPenerima: string;
   catatan?: string | null;
   totalBayar: number;
+  statusPembayaran?: string | null;
+  paymentStatus?: string | null;
+  tipePenjualan?: string | null;
+  paymentMethod?: string | null;
   createdAt: string;
   notes?: string | null;
+  totalQty?: number;
+  totalBeratGram?: number;
   routePoints: { lat: string; lng: string; address: string; sequenceNo: number }[];
+  items?: {
+    namaProduk: string | null;
+    varian?: string | null;
+    qty: number;
+    harga: number;
+    subtotal: number;
+    beratGram?: number | null;
+  }[];
 }
 
 export interface RouteWaypoint {
@@ -56,6 +70,20 @@ export interface RouteWaypoint {
   deliveryId: number;
   idTransaksi?: string;
   customerName?: string;
+}
+
+export interface RoutePolylinePoint {
+  lat: number;
+  lng: number;
+}
+
+export interface OptimizedRoute {
+  waypoints: RouteWaypoint[];
+  totalStops: number;
+  totalEstimatedKm: number;
+  source?: 'osrm' | 'local';
+  routePolyline?: RoutePolylinePoint[] | null;
+  routeDurationMin?: number;
 }
 
 export interface StatsMe {

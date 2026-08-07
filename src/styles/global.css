@@ -45,19 +45,19 @@
 }
 
 [data-theme='light'] {
-  --surface-base: #faf6ef;
+  --surface-base: #faf7f4;
   --surface-raised: #ffffff;
   --surface-overlay: #ffffff;
   --surface-highest: #fdf3ea;
 
-  --border-subtle: rgba(47, 36, 28, 0.04);
-  --border-default: #f0dfca;
-  --border-strong: #dfc5a8;
+  --border-subtle: rgba(47, 36, 28, 0.06);
+  --border-default: #ece3da;
+  --border-strong: #d8cabb;
   --border-accent: #c55a2b;
 
-  --text-primary: #4a3d33;
+  --text-primary: #2b2119;
   --text-secondary: #6f5d4f;
-  --text-muted: #a08973;
+  --text-muted: #9b8a76;
   --text-on-accent: #ffffff;
   --text-on-danger: #ffffff;
 
@@ -66,14 +66,14 @@
   --action-primary-pressed: #8a3c1b;
   --action-primary-subtle: #fde8d9;
 
-  --status-success: #4f6a24;
-  --status-success-subtle: rgba(127, 159, 62, 0.18);
+  --status-success: #3d7a1f;
+  --status-success-subtle: #ecf6e3;
   --status-danger: #c0392b;
-  --status-danger-subtle: #fef2f2;
-  --status-warning: #b8842a;
-  --status-warning-subtle: rgba(217, 164, 65, 0.14);
-  --status-info: #2f6485;
-  --status-info-subtle: rgba(61, 126, 166, 0.1);
+  --status-danger-subtle: #fdeceb;
+  --status-warning: #b7791f;
+  --status-warning-subtle: #fbf0dc;
+  --status-info: #2563a8;
+  --status-info-subtle: #e8f1fb;
 
   --glow-accent: transparent;
   --glow-danger: transparent;
@@ -130,6 +130,85 @@ body {
   --color-glow-danger: var(--glow-danger);
   --color-glow-success: var(--glow-success);
 
+  /* ---- Semantic aliases (blueprint UI_MODERNIZATION §3.4) ---- */
+  --color-surface: var(--surface-base);
+  --color-raised: var(--surface-raised);
+  --color-overlay: var(--surface-overlay);
+  --color-highest: var(--surface-highest);
+
+  --color-ink: var(--text-primary);
+  --color-ink-secondary: var(--text-secondary);
+  --color-ink-muted: var(--text-muted);
+  --color-on-accent: var(--text-on-accent);
+  --color-on-danger: var(--text-on-danger);
+
+  --color-brand: var(--action-primary);
+  --color-brand-hover: var(--action-primary-hover);
+  --color-brand-pressed: var(--action-primary-pressed);
+  --color-brand-soft: var(--action-primary-subtle);
+
+  --color-ok: var(--status-success);
+  --color-ok-soft: var(--status-success-subtle);
+  --color-alert: var(--status-danger);
+  --color-alert-soft: var(--status-danger-subtle);
+  --color-warn: var(--status-warning);
+  --color-warn-soft: var(--status-warning-subtle);
+  --color-info: var(--status-info);
+  --color-info-soft: var(--status-info-subtle);
+
+  --shadow-card: 0 1px 3px 0 rgb(28 25 23 / 0.06), 0 1px 2px -1px rgb(28 25 23 / 0.04);
+  --shadow-card-lg: 0 8px 24px -8px rgb(28 25 23 / 0.12), 0 2px 6px -2px rgb(28 25 23 / 0.05);
+  --shadow-sheet: 0 -4px 24px -4px rgb(28 25 23 / 0.12), 0 -2px 8px -2px rgb(28 25 23 / 0.06);
+
+  --color-umber-50: #faf6ef;
+  --color-umber-100: #f8f0e5;
+  --color-umber-200: #f0dfca;
+  --color-umber-300: #dfc5a8;
+  --color-umber-400: #a08973;
+  --color-umber-500: #6f5d4f;
+  --color-umber-600: #4a3d33;
+  --color-umber-700: #332921;
+  --color-umber-800: #25201b;
+  --color-umber-900: #1a1613;
+  --color-umber-950: #120f0d;
+
+  --color-amber-50: #fdf3ea;
+  --color-amber-100: #fde8d9;
+  --color-amber-200: #f8cda3;
+  --color-amber-300: #f0b06e;
+  --color-amber-400: #dd8a45;
+  --color-amber-500: #c55a2b;
+  --color-amber-600: #ae4d23;
+  --color-amber-700: #8a3c1b;
+  --color-amber-800: #662c14;
+  --color-amber-900: #42200f;
+
+  --color-green-100: rgba(127, 159, 62, 0.18);
+  --color-green-300: #8db34a;
+  --color-green-500: #5f7a2e;
+  --color-green-600: #4f6a24;
+  --color-green-700: #3d5219;
+
+  --color-red-100: #fef2f2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #dc2626;
+  --color-red-600: #c0392b;
+  --color-red-700: #991b1b;
+  --color-red-800: #7f1d1d;
+  --color-red-900: #63171b;
+  --color-red-950: #450a0a;
+
+  --color-blue-300: #93c5e8;
+  --color-blue-400: #60a5fa;
+  --color-blue-500: #3d7ea6;
+  --color-blue-600: #2f6485;
+
+  --color-yellow-300: #ecc373;
+  --color-yellow-500: #d9a441;
+  --color-yellow-600: #b8842a;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -161,5 +240,23 @@ body {
   textarea {
     font-family: inherit;
     font-size: inherit;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
   }
 }

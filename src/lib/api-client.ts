@@ -1,5 +1,6 @@
 import { apiUrl, isNative } from './env';
 import { STORAGE_KEYS, secureStorage, getJson } from './storage';
+import { captureNetworkError, track } from './analytics';
 import type { CourierDto } from './types';
 
 interface AuthTokens {
@@ -96,7 +97,12 @@ export async function apiRequest<T = unknown>(
       const refreshed = await tryRefreshToken();
       if (refreshed) return apiRequest<T>(path, options);
     }
+    captureNetworkError(method, path, response.status, message);
     throw new ApiError(response.status, message, data);
+  }
+
+  if (method !== 'GET') {
+    track('api_request', { method, path, status: response.status });
   }
 
   return data as T;
@@ -107,23 +113,19 @@ async function tryRefreshToken(): Promise<boolean> {
   if (!refreshToken) return false;
 
   try {
-    const res = await fetch(apiUrl('/api/courier/auth/refresh'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-    if (!res.ok) {
-      await clearAuth();
-      return false;
-    }
-    const data = (await res.json()) as { accessToken?: string; refreshToken?: string };
-    if (data.accessToken && data.refreshToken) {
+    const data = await apiRequest<{ ok: boolean; accessToken?: string; refreshToken?: string; error?: string }>(
+      '/api/courier/auth/refresh',
+      { method: 'POST', auth: false, body: { refreshToken } },
+    );
+    if (data.ok && data.accessToken && data.refreshToken) {
       await secureStorage.set(STORAGE_KEYS.accessToken, data.accessToken);
       await secureStorage.set(STORAGE_KEYS.refreshToken, data.refreshToken);
       return true;
     }
+    await clearAuth();
     return false;
   } catch {
+    await clearAuth();
     return false;
   }
 }

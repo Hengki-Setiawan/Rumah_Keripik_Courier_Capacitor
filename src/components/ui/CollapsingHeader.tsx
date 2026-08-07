@@ -43,7 +43,7 @@ export function CollapsingHeader({ children, collapsedTitle, threshold = 48, cla
       )}
     >
       {collapsed ? (
-        <div className="flex items-center gap-3 rounded-2xl border border-umber-700/60 bg-umber-950/95 px-4 py-2.5 backdrop-blur-lg">
+        <div className="flex items-center gap-3 rounded-2xl border border-border-subtle bg-raised/95 px-4 py-2.5 backdrop-blur-lg">
           {collapsedTitle}
         </div>
       ) : (

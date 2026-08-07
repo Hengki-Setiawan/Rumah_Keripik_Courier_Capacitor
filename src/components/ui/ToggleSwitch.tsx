@@ -17,8 +17,8 @@ export function ToggleSwitch({ checked, onChange, disabled, label }: ToggleSwitc
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500',
-        checked ? 'bg-amber-500' : 'bg-umber-700',
+        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+        checked ? 'bg-brand' : 'bg-ink-muted/40',
         disabled && 'opacity-50 pointer-events-none',
       )}
     >

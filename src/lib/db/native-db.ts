@@ -1,4 +1,4 @@
-﻿import { CapacitorSQLite, SQLiteConnection, type SQLiteDBConnection } from '@capacitor-community/sqlite';
+import { CapacitorSQLite, SQLiteConnection, type SQLiteDBConnection } from '@capacitor-community/sqlite';
 import type { BufferedPoint, DbClient, QueueItem } from './index';
 import type { CourierDelivery } from '../types';
 
@@ -81,6 +81,11 @@ class NativeDbClient implements DbClient {
         speed REAL,
         timestamp INTEGER NOT NULL,
         synced INTEGER DEFAULT 0
+      );
+      CREATE TABLE IF NOT EXISTS route_cache (
+        cache_key TEXT PRIMARY KEY,
+        payload_json TEXT NOT NULL,
+        saved_at INTEGER NOT NULL
       );
       CREATE TABLE IF NOT EXISTS app_meta (
         key TEXT PRIMARY KEY,
@@ -186,9 +191,28 @@ class NativeDbClient implements DbClient {
     return row ? (row.value as string) : null;
   }
 
+  async getRouteCache(cacheKey: string): Promise<{ savedAt: number; payloadJson: string } | null> {
+    const res = await this.c().query('SELECT payload_json, saved_at FROM route_cache WHERE cache_key = ?', [cacheKey]);
+    const row = res.values?.[0];
+    if (!row) return null;
+    return { savedAt: row.saved_at as number, payloadJson: row.payload_json as string };
+  }
+
+  async setRouteCache(cacheKey: string, payloadJson: string, savedAt: number): Promise<void> {
+    await this.c().run(
+      'INSERT OR REPLACE INTO route_cache (cache_key, payload_json, saved_at) VALUES (?, ?, ?)',
+      [cacheKey, payloadJson, savedAt],
+    );
+  }
+
+  async pruneRouteCache(olderThanMs: number): Promise<void> {
+    const cutoff = Date.now() - olderThanMs;
+    await this.c().run('DELETE FROM route_cache WHERE saved_at < ?', [cutoff]);
+  }
+
   async reset(): Promise<void> {
     await this.c().execute(
-      'DELETE FROM deliveries_cache; DELETE FROM sync_queue; DELETE FROM location_buffer; DELETE FROM app_meta;',
+      'DELETE FROM deliveries_cache; DELETE FROM sync_queue; DELETE FROM location_buffer; DELETE FROM app_meta; DELETE FROM route_cache;',
     );
   }
 }

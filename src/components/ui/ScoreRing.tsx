@@ -24,7 +24,7 @@ export function ScoreRing({ score, size = 96, strokeWidth = 8, label, className 
           fill="none"
           stroke="currentColor"
           strokeWidth={strokeWidth}
-          className="text-umber-700"
+          className="text-ink-muted/25"
         />
         <circle
           cx={size / 2}
@@ -36,12 +36,12 @@ export function ScoreRing({ score, size = 96, strokeWidth = 8, label, className 
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className="text-amber-500 transition-all duration-500"
+          className="text-brand transition-all duration-500"
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold">{Math.round(normalized)}</span>
-        {label && <span className="text-[10px] opacity-70">{label}</span>}
+        <span className="text-2xl font-bold text-ink">{Math.round(normalized)}</span>
+        {label && <span className="text-[10px] text-ink-muted">{label}</span>}
       </div>
     </div>
   );

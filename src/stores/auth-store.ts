@@ -3,6 +3,7 @@ import { STORAGE_KEYS, getJson, secureStorage, setJson } from '@/lib/storage';
 import { fetchMe, loginWithPin, logoutRemote } from '@/lib/api-client';
 import { initPushNotifications, unregisterPushToken, type PushNotificationOptions } from '@/lib/notifications';
 import { setupLiveUpdate } from '@/lib/live-update';
+import { identifyCourier, resetAnalytics, track } from '@/lib/analytics';
 import { useOfferStore } from '@/stores/offer-store';
 import type { CourierDto } from '@/lib/types';
 import { getOrCreateDeviceId } from '@/lib/device';
@@ -79,12 +80,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       await setJson(STORAGE_KEYS.courierProfile, result.courier);
       const pinEnabled = (await secureStorage.get(STORAGE_KEYS.pinEnabled)) === 'true';
       set({ isAuthenticated: true, courier: result.courier, pinEnabled });
+      identifyCourier(result.courier.id, { name: result.courier.name });
+      track('login_success');
       void initPushNotifications(notifOpts());
       void setupLiveUpdate({ courierId: result.courier.id });
       return { ok: true };
     } catch (e) {
       const message = e instanceof Error ? e.message : 'PIN salah';
       set({ loginError: message });
+      track('login_failed', { error: message });
       return { ok: false, error: message };
     }
   },
@@ -99,6 +103,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await logoutRemote();
     await unregisterPushToken();
     useOfferStore.setState({ offer: null, busy: false, error: null });
+    resetAnalytics();
     set({ isAuthenticated: false, courier: null });
   },
 

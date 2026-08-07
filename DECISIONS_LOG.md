@@ -24,6 +24,26 @@
 
 ## 2. Daftar Keputusan
 
+### D-017 - Route cache berbasis DB (TTL 24 jam) + wiring ORS Matrix
+- **Keputusan:** outeCache dipindah dari AsyncStorage ke tabel oute_cache pada SQLite (drizzle) dengan TTL 24 jam dan pembersihan otomatis saat app start (pruneRouteCache); saat online + API key ORS tersedia, etchDistanceMatrix dipakai untuk menjalankan ulang 2-opt/Or-opt dengan jarak jalan asli sebagai pengganti Haversine.
+- **Alasan:** blueprint §4.5 menuntut jarak jalan asli bila online; cache DB lebih tahan-besar daripada AsyncStorage dan bisa diprune.
+- **Trade-off:** dua panggilan ORS (directions per-leg + matrix) saat online; bila ORS gagal tetap jatuh ke heuristik lokal + garis lurus.
+- **Sumber:** COURIER_ROUTING_BLUEPRINT §4.5, §9.
+
+
+
+### D-016 - Migrasi peta ke MapLibre GL
+- **Keputusan:** Mengganti implementasi peta saat ini (Leaflet di `NativeRouteMap.tsx`) ke **MapLibre GL** (WebGL, dirender dalam WebView); komponen baru `RouteMap.tsx` full-screen + style peta terang.
+- **Alasan:** Arahan langsung user untuk mengikuti blueprint map (migrasi MapLibre), menimpa rekomendasi awal mempertahankan Leaflet karena kendala hardware low-end.
+- **Trade-off (dicatat, bukan batal):** device itel M666S (Android entry-level) WebGL tidak andal; risiko blank/rendah FPS. Mitigasi: guard supportsWebGL() + fallback Leaflet bila gagal. Menyimpangi D-003 (GoogleMaps plugin) dan mengganti Leaflet.
+- **Sumber:** map blueprint #1.4, #5.2-5.4.
+
+### D-015 - UI default light (Kripik Fresh)
+- **Keputusan:** Default theme `light`; semua layer & komponen dimigrasi dari class legacy (umber/amber/emerald) ke semantic tokens (bg-surface, text-ink, bg-brand, dst).
+- **Alasan:** UI blueprint #2 menetapkan karakter terang gaya Gojek/Grab sebagai bahasa desain utama; dark tetap via toggler SettingsSheet.
+- **Trade-off:** dark mode bukan jalur utama, tetap berfungsi via CSS vars `[data-theme]`.
+
+
 ### D-001 — Stub `firebase/messaging` di vite config (bukan install firebase)
 - **Keputusan:** Alias `firebase/messaging` ke `src/lib/firebase-messaging-stub.ts` di `vite.config.ts`.
 - **Alasan:** `@capacitor-firebase/messaging` mengimpor web plugin yang butuh `firebase/messaging` (optional peer dep). App ini **Android-only** (blueprint I.1), web hanyalah dev/serve — install firebase penuh (~1MB+) hanya untuk memuaskan resolver build adalah mubazir.

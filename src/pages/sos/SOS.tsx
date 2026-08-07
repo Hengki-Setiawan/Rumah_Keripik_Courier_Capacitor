@@ -1,21 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Siren, MapPin, PhoneCall } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { cn } from '@/lib/cn';
+import { hapticVibrate, hapticNotification } from '@/lib/haptics';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { getCurrentPosition } from '@/lib/location';
 
 const SOS_REASONS = ['Kecelakaan', 'Kendaraan Mogok', 'Darurat Medis', 'Terlambat', 'Lainnya'];
+const HOLD_MS = 800;
+const RING_R = 9;
+const RING_C = 2 * Math.PI * RING_R;
 
 export default function SOS() {
-    const [sending, setSending] = useState(false);
+  const navigate = useNavigate();
+  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [reason, setReason] = useState(SOS_REASONS[0]);
+  const [holding, setHolding] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const holdTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) clearInterval(holdTimer.current);
+    };
+  }, []);
 
   async function triggerSOS() {
+    if (sending || sent) return;
     setSending(true);
+    await hapticVibrate();
     let location: { lat: number; lng: number } | undefined;
     try {
       const pos = await getCurrentPosition();
@@ -37,40 +55,65 @@ export default function SOS() {
     } finally {
       setSending(false);
     }
+    await hapticNotification('success');
+  }
+
+  function startHold() {
+    if (sending || sent) return;
+    setHolding(true);
+    setProgress(0);
+    const start = Date.now();
+    holdTimer.current = setInterval(() => {
+      const p = Math.min(1, (Date.now() - start) / HOLD_MS);
+      setProgress(p);
+      if (p >= 1) {
+        cancelHold();
+        void triggerSOS();
+      }
+    }, 30);
+  }
+
+  function cancelHold() {
+    if (holdTimer.current) clearInterval(holdTimer.current);
+    holdTimer.current = null;
+    setHolding(false);
+    setProgress(0);
   }
 
   function callAdmin() {
-    // Alur darurat: panggil admin via telepon
     window.location.href = 'tel:081234567890';
   }
 
+  const holdLabel = sending ? 'Mengirim...' : holding ? 'Lepaskan untuk batal' : 'Tahan untuk Kirim SOS';
+
   return (
-    <AppShell title="SOS Darurat">
+    <AppShell title="SOS Darurat" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
-        <Card className="border-red-600/40 bg-red-950/20">
+        <Card className="bg-alert-soft">
           <div className="flex items-center gap-3">
-            <Siren className="size-6 text-red-500" />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-alert text-on-danger">
+              <Siren className="size-5" />
+            </span>
             <div>
-              <p className="text-sm font-bold text-red-300">Keadaan Darurat</p>
-              <p className="mt-0.5 text-xs text-red-300/70">
-                Tombol ini mengirim laporan mendesak ke admin beserta lokasi Anda.
+              <p className="text-sm font-bold text-alert">Keadaan Darurat</p>
+              <p className="mt-0.5 text-xs text-ink-secondary">
+                Tahan tombol SOS untuk mengirim laporan mendesak ke admin beserta lokasi Anda.
               </p>
             </div>
           </div>
         </Card>
 
         <Card>
-          <p className="mb-2 text-xs font-medium text-umber-400">Alasan</p>
+          <p className="mb-2 text-xs font-medium text-ink-secondary">Alasan</p>
           <div className="flex flex-wrap gap-2">
             {SOS_REASONS.map((r) => (
               <button
                 key={r}
                 onClick={() => setReason(r)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  reason === r
-                    ? 'bg-red-500 text-white border-red-500'
-                    : 'bg-umber-900 border-umber-700 text-umber-300'
-                }`}
+                className={cn(
+                  'h-9 rounded-full px-4 text-sm font-medium transition-colors',
+                  reason === r ? 'bg-alert text-on-danger' : 'bg-surface-subtle text-ink-secondary',
+                )}
               >
                 {r}
               </button>
@@ -80,22 +123,59 @@ export default function SOS() {
 
         <Card>
           <div className="flex items-center gap-3">
-            <MapPin className="size-5 text-umber-400" />
-            <p className="text-xs text-umber-400">Lokasi otomatis terlampir jika tersedia</p>
+            <MapPin className="size-5 text-ink-muted" />
+            <p className="text-xs text-ink-secondary">Lokasi otomatis terlampir jika tersedia</p>
           </div>
         </Card>
 
-        <Button variant="danger" size="xl" loading={sending} onClick={triggerSOS} fullWidth className="shadow-glow-red">
-          {sent ? 'Laporan Terkirim' : 'Kirim SOS'}
-        </Button>
+        <div className="relative w-full select-none touch-none">
+          <button
+            type="button"
+            onPointerDown={startHold}
+            onPointerUp={cancelHold}
+            onPointerLeave={cancelHold}
+            onPointerCancel={cancelHold}
+            onContextMenu={(e) => e.preventDefault()}
+            disabled={sending || sent}
+            aria-label="Kirim SOS (tahan untuk konfirmasi)"
+            className={cn(
+              'flex h-14 w-full items-center justify-center rounded-2xl bg-alert text-base font-semibold text-on-danger shadow-card',
+              'transition-all duration-150 active:scale-[0.98] disabled:opacity-60',
+            )}
+          >
+            <span className="relative flex items-center justify-center gap-2">
+              <svg width="24" height="24" viewBox="0 0 24 24" className="-rotate-90">
+                <circle cx="12" cy="12" r={RING_R} stroke="currentColor" strokeOpacity="0.35" strokeWidth="3" fill="none" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r={RING_R}
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={RING_C}
+                  strokeDashoffset={RING_C * (1 - progress)}
+                  className="transition-none"
+                />
+              </svg>
+              {sent ? 'Laporan Terkirim' : holdLabel}
+            </span>
+          </button>
+          {holding && (
+            <p className="mt-2 text-center text-xs text-ink-secondary">
+              Lepaskan sebelum 1 detik untuk membatalkan.
+            </p>
+          )}
+        </div>
 
-        <Button variant="ghost" onClick={callAdmin}>
-          <PhoneCall className="size-4" /> Hubungi Admin via Telepon
+        <Button variant="secondary" size="xl" onClick={callAdmin} fullWidth>
+          <PhoneCall className="size-5" /> Hubungi Admin via Telepon
         </Button>
 
         {sent && (
-          <Card className="border-emerald-500/30 bg-emerald-500/10">
-            <p className="text-center text-sm font-semibold text-emerald-400">
+          <Card className="bg-ok-soft">
+            <p className="text-center text-sm font-semibold text-ok">
               Laporan SOS terkirim. Tim akan segera menghubungi Anda.
             </p>
           </Card>

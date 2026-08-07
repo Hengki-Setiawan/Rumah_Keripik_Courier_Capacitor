@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Wallet } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
@@ -22,6 +23,7 @@ async function fetchEarnings(period: string): Promise<EarningsResponse> {
 }
 
 export default function Earnings() {
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'daily'>('weekly');
   const { data, isLoading } = useQuery({
     queryKey: ['earnings', period],
@@ -44,7 +46,7 @@ export default function Earnings() {
   }, [entries]);
 
   return (
-    <AppShell title="Pendapatan">
+    <AppShell title="Pendapatan" onBack={() => navigate(-1)}>
       <div className="flex gap-2 pb-2">
         <FilterPill label="Harian" active={period === 'daily'} onClick={() => setPeriod('daily')} />
         <FilterPill label="7 Hari" active={period === 'weekly'} onClick={() => setPeriod('weekly')} />
@@ -53,23 +55,23 @@ export default function Earnings() {
 
       <div className="flex flex-col gap-4">
         <Card elevation={2} className="flex flex-col items-center gap-1 py-6">
-          <p className="text-xs text-umber-400">Total Pendapatan Terkonfirmasi</p>
-          <p className="text-3xl font-bold text-amber-500">{formatCurrency(total)}</p>
+          <p className="text-xs text-ink-muted">Total Pendapatan Terkonfirmasi</p>
+          <p className="text-3xl font-bold text-brand">{formatCurrency(total)}</p>
           {data?.summary.pendingTotal !== undefined && data.summary.pendingTotal > 0 && (
-            <p className="text-xs text-umber-500">
+            <p className="text-xs text-ink0">
               + {formatCurrency(data.summary.pendingTotal)} belum dikonfirmasi
             </p>
           )}
           {sparkValues.length >= 2 && (
             <div className="mt-3 w-full max-w-[280px]">
               <Sparkline values={sparkValues} className="mx-auto" />
-              <p className="mt-1 text-center text-[10px] text-umber-500">Tren pendapatan harian (7 hari terakhir)</p>
+              <p className="mt-1 text-center text-[10px] text-ink0">Tren pendapatan harian (7 hari terakhir)</p>
             </div>
           )}
         </Card>
 
         {isLoading && !data ? (
-          <Card><p className="text-center text-sm text-umber-400 py-6">Memuat...</p></Card>
+          <Card><p className="text-center text-sm text-ink-muted py-6">Memuat...</p></Card>
         ) : entries.length === 0 ? (
           <Card>
             <EmptyState
@@ -83,13 +85,13 @@ export default function Earnings() {
             {entries.map((e) => (
               <Card key={e.id} className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-umber-100">
+                  <p className="text-sm font-semibold text-ink">
                     Pengiriman #{e.id}
                     {e.note ? ` · ${e.note}` : ''}
                   </p>
-                  <p className="mt-0.5 text-xs text-umber-500">{formatDateTime(e.createdAt)}</p>
+                  <p className="mt-0.5 text-xs text-ink0">{formatDateTime(e.createdAt)}</p>
                 </div>
-                <span className="text-sm font-bold text-emerald-400">+{formatCurrency(e.baseFee + e.bonusAmount)}</span>
+                <span className="text-sm font-bold text-ok">+{formatCurrency(e.baseFee + e.bonusAmount)}</span>
               </Card>
             ))}
           </div>

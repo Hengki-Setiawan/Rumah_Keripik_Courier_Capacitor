@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TimerReset, MapPin, Clock3, Play, Square, CalendarCheck2, AlertTriangle } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
@@ -31,6 +32,7 @@ interface AttendanceResponse {
 }
 
 export default function Shift() {
+  const navigate = useNavigate();
   const [isActive, setIsActive] = useState(false);
   const [clockedAt, setClockedAt] = useState<string | null>(null);
   const [shiftId, setShiftId] = useState<number | null>(null);
@@ -135,19 +137,19 @@ export default function Shift() {
   const lastGeo = attendance[0];
 
   return (
-    <AppShell title="Shift">
+    <AppShell title="Shift" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
         <Card elevation={2} className="flex flex-col items-center gap-4 py-8">
           <div
             className={`flex size-20 items-center justify-center rounded-full border-2 ${
-              isActive ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400' : 'border-amber-500 bg-amber-500/10 text-amber-500'
+              isActive ? 'border-ok bg-ok-soft text-ok' : 'border-brand bg-brand-soft text-brand'
             }`}
           >
             {isActive ? <Play className="size-9" /> : <TimerReset className="size-9" />}
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-umber-50">{isActive ? 'Sedang Aktif' : 'Belum Mulai'}</p>
-            <p className="mt-1 text-xs text-umber-400">
+            <p className="text-lg font-bold text-ink">{isActive ? 'Sedang Aktif' : 'Belum Mulai'}</p>
+            <p className="mt-1 text-xs text-ink-muted">
               {isActive && clockedAt ? `Mulai ${formatTime(clockedAt)}` : 'Mulai shift untuk menerima pengiriman'}
             </p>
           </div>
@@ -156,7 +158,7 @@ export default function Shift() {
         {geoError && (
           <Card className="border-red-600/40 bg-red-950/30">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-red-400" />
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-alert" />
               <div>
                 <p className="text-sm font-semibold text-red-200">Lokasi di luar batas</p>
                 <p className="mt-1 text-xs text-red-300">{geoError}</p>
@@ -168,10 +170,10 @@ export default function Shift() {
         {geofence && geofence.zoneName && (
           <Card>
             <div className="flex items-center gap-3">
-              <MapPin className="size-5 text-emerald-500" />
+              <MapPin className="size-5 text-ok" />
               <div>
-                <p className="text-xs text-umber-400">Zona absensi</p>
-                <p className="text-sm font-semibold text-umber-100">
+                <p className="text-xs text-ink-muted">Zona absensi</p>
+                <p className="text-sm font-semibold text-ink">
                   {geofence.zoneName || geofence.warehouseName || 'Gudang'}
                 </p>
               </div>
@@ -181,10 +183,10 @@ export default function Shift() {
 
         <Card>
           <div className="flex items-center gap-3">
-            <MapPin className="size-5 text-umber-400" />
+            <MapPin className="size-5 text-ink-muted" />
             <div>
-              <p className="text-xs text-umber-400">Lokasi saat ini</p>
-              <p className="text-sm font-semibold text-umber-100">
+              <p className="text-xs text-ink-muted">Lokasi saat ini</p>
+              <p className="text-sm font-semibold text-ink">
                 {loc ? `${loc.lat.toFixed(5)}, ${loc.lng.toFixed(5)}` : 'Mendapatkan lokasi...'}
               </p>
             </div>
@@ -193,10 +195,10 @@ export default function Shift() {
 
         <Card>
           <div className="flex items-center gap-3">
-            <Clock3 className="size-5 text-umber-400" />
+            <Clock3 className="size-5 text-ink-muted" />
             <div>
-              <p className="text-xs text-umber-400">Jam masuk tercatat</p>
-              <p className="text-sm font-semibold text-umber-100">{clockedAt ? formatTime(clockedAt) : '—'}</p>
+              <p className="text-xs text-ink-muted">Jam masuk tercatat</p>
+              <p className="text-sm font-semibold text-ink">{clockedAt ? formatTime(clockedAt) : '—'}</p>
             </div>
           </div>
         </Card>
@@ -205,11 +207,11 @@ export default function Shift() {
           <Card>
             <div className="flex items-center gap-3">
               <span className="relative flex size-3">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex size-3 rounded-full bg-emerald-500" />
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-60" />
+                <span className="relative inline-flex size-3 rounded-full bg-ok" />
               </span>
-              <p className="text-sm font-semibold text-umber-100">Tracking lokasi aktif</p>
-              <p className="ml-auto text-[11px] text-umber-500">Lokasi dikirim berkala</p>
+              <p className="text-sm font-semibold text-ink">Tracking lokasi aktif</p>
+              <p className="ml-auto text-[11px] text-ink0">Lokasi dikirim berkala</p>
             </div>
           </Card>
         )}
@@ -227,10 +229,10 @@ export default function Shift() {
 
         <Card>
           <div className="mb-3 flex items-center gap-3">
-            <CalendarCheck2 className="size-5 text-amber-500" />
+            <CalendarCheck2 className="size-5 text-brand" />
             <div>
-              <p className="text-sm font-semibold text-umber-100">Rekap Absensi</p>
-              <p className="text-xs text-umber-400">
+              <p className="text-sm font-semibold text-ink">Rekap Absensi</p>
+              <p className="text-xs text-ink-muted">
                 {lastGeo
                   ? lastGeo.clockOutAt
                     ? `Terakhir ${formatTime(lastGeo.clockInAt)} - ${formatTime(lastGeo.clockOutAt)}`
@@ -242,12 +244,12 @@ export default function Shift() {
           {attendance.length > 0 && (
             <div className="flex flex-col gap-1.5">
               {attendance.slice(0, 5).map((a) => (
-                <div key={a.id} className="flex items-center justify-between border-t border-umber-800 pt-1.5 text-xs">
-                  <span className="text-umber-300">
+                <div key={a.id} className="flex items-center justify-between border-t border-border-subtle pt-1.5 text-xs">
+                  <span className="text-ink-secondary">
                     {formatTime(a.clockInAt)}
                     {a.clockOutAt ? ` - ${formatTime(a.clockOutAt)}` : ' - sekarang'}
                   </span>
-                  <span className="text-umber-500">
+                  <span className="text-ink0">
                     {a.status === 'flagged_no_geofence' ? 'Luar zona' : a.clockOutAt ? 'Selesai' : 'Berjalan'}
                   </span>
                 </div>
@@ -256,7 +258,7 @@ export default function Shift() {
           )}
         </Card>
 
-        <p className="text-center text-[11px] text-umber-500">
+        <p className="text-center text-[11px] text-ink0">
           Jika offline, aksi shift akan disimpan dan dikirim otomatis saat kembali online.
         </p>
       </div>

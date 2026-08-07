@@ -4,11 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth-store';
 import { initTheme } from '@/stores/theme-store';
 import { useSyncStore } from '@/stores/sync-store';
+import { pruneRouteCache } from '@/lib/routing/routeCache';
 import LoginPage from '@/pages/Login';
 import DashboardPage from '@/pages/Dashboard';
 import HistoryPage from '@/pages/History';
 import StatsPage from '@/pages/Stats';
-import ProfilePage from '@/pages/Profile';
 import ShiftPage from '@/pages/shift/Shift';
 import SosPage from '@/pages/sos/SOS';
 import EarningsPage from '@/pages/earnings/Earnings';
@@ -21,6 +21,7 @@ import BatteryGuidePage from '@/pages/battery-guide/BatteryGuide';
 import LockScreen from '@/pages/lock/LockScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { OfferSheet } from '@/components/OfferSheet';
+import { HardwareBackHandler } from '@/components/HardwareBackHandler';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,7 +43,6 @@ function Protected() {
       <Route path="/" element={<DashboardPage />} />
       <Route path="/history" element={<HistoryPage />} />
       <Route path="/stats" element={<StatsPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
       <Route path="/shift" element={<ShiftPage />} />
       <Route path="/sos" element={<SosPage />} />
       <Route path="/earnings" element={<EarningsPage />} />
@@ -79,6 +79,7 @@ export default function App() {
 
   useEffect(() => {
     initTheme();
+    void pruneRouteCache();
     bootstrap();
   }, [bootstrap]);
 
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="/*" element={<Protected />} />
         </Routes>
         <OfferSheet />
+        <HardwareBackHandler />
       </BrowserRouter>
     </QueryClientProvider>
   );

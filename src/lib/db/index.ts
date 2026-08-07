@@ -13,6 +13,9 @@ export interface DbClient {
   markLocationsSynced(ids: number[]): Promise<void>;
   setMeta(key: string, value: string): Promise<void>;
   getMeta(key: string): Promise<string | null>;
+  getRouteCache(cacheKey: string): Promise<{ savedAt: number; payloadJson: string } | null>;
+  setRouteCache(cacheKey: string, payloadJson: string, savedAt: number): Promise<void>;
+  pruneRouteCache(olderThanMs: number): Promise<void>;
   reset(): Promise<void>;
 }
 
@@ -43,17 +46,20 @@ interface WebDbShape {
   queue: QueueItem[];
   locations: BufferedPoint[];
   meta: Record<string, string>;
+  routeCache: Record<string, { savedAt: number; payloadJson: string }>;
 }
 
 function emptyWebDb(): WebDbShape {
-  return { deliveries: [], queue: [], locations: [], meta: {} };
+  return { deliveries: [], queue: [], locations: [], meta: {}, routeCache: {} };
 }
 
 async function readWebDb(): Promise<WebDbShape> {
   try {
     const raw = window.localStorage.getItem(WEB_DB_KEY);
     if (!raw) return emptyWebDb();
-    return JSON.parse(raw) as WebDbShape;
+    const parsed = JSON.parse(raw) as WebDbShape;
+    if (!parsed.routeCache) parsed.routeCache = {};
+    return parsed;
   } catch {
     return emptyWebDb();
   }
@@ -132,6 +138,26 @@ class WebDbClient implements DbClient {
   async getMeta(key: string): Promise<string | null> {
     const db = await readWebDb();
     return db.meta[key] ?? null;
+  }
+
+  async getRouteCache(cacheKey: string): Promise<{ savedAt: number; payloadJson: string } | null> {
+    const db = await readWebDb();
+    return db.routeCache[cacheKey] ?? null;
+  }
+
+  async setRouteCache(cacheKey: string, payloadJson: string, savedAt: number): Promise<void> {
+    const db = await readWebDb();
+    db.routeCache[cacheKey] = { savedAt, payloadJson };
+    await writeWebDb(db);
+  }
+
+  async pruneRouteCache(olderThanMs: number): Promise<void> {
+    const db = await readWebDb();
+    const cutoff = Date.now() - olderThanMs;
+    for (const key of Object.keys(db.routeCache)) {
+      if (db.routeCache[key].savedAt < cutoff) delete db.routeCache[key];
+    }
+    await writeWebDb(db);
   }
 
   async reset(): Promise<void> {

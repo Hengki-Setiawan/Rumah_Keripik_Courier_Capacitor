@@ -28,8 +28,8 @@ export default function Stats() {
             label="Skor"
           />
           <div className="text-center">
-            <p className="text-sm font-semibold text-umber-100">Skor Kinerja</p>
-            <p className="mt-1 text-xs text-umber-400">
+            <p className="text-sm font-semibold text-ink">Skor Kinerja</p>
+            <p className="mt-1 text-xs text-ink-muted">
               Peringkat {data?.rank ?? 0} dari {data?.totalCouriers ?? 0} kurir
             </p>
           </div>
@@ -62,7 +62,7 @@ export default function Stats() {
           />
         </div>
 
-        {isLoading && <p className="text-center text-xs text-umber-500">Memuat statistik...</p>}
+        {isLoading && <p className="text-center text-xs text-ink0">Memuat statistik...</p>}
       </div>
     </AppShell>
   );
