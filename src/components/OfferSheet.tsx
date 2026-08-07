@@ -36,7 +36,7 @@ export function OfferSheet() {
           </Button>
         </div>
         <div className="mt-3 text-center">
-          <button onClick={dismiss} className="text-[11px] text-ink0 underline">
+          <button onClick={dismiss} className="flex h-11 items-center text-[11px] text-ink-muted underline">
             Nanti
           </button>
         </div>

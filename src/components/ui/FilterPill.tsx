@@ -12,7 +12,7 @@ export function FilterPill({ label, active, onClick, count }: FilterPillProps) {
     <button
       onClick={onClick}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-150',
+        'inline-flex h-11 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors duration-150',
         active ? 'bg-brand text-on-accent shadow-card' : 'bg-raised text-ink-secondary shadow-card hover:bg-highest',
       )}
     >

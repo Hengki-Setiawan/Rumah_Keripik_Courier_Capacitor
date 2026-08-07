@@ -31,6 +31,12 @@
 - **Trade-off:** tween menambah sedikit latency tampilan posisi (450ms) demi gerak halus; off-route detection berjalan interval 2 detik (hemat CPU); `prefers-reduced-motion` global mematikan semua animasi/transisi bagi user yang memintanya.
 - **Sumber:** COURIER_MAP_ROUTING_UPGRADE_BLUEPRINT §6.1-6.3, §8; COURIER_UI_MODERNIZATION_BLUEPRINT §8, §10.3.
 
+### D-019 - Aksesibilitas & token polish: semua touch target >= 44px, hapus hex literal dari komponen
+- **Keputusan:** Audit ulang DoD UI blueprint §12 (touch target >= 44px, nol hex literal di `src/pages` & `src/components/ui`). (a) Naikkan elemen interaktif di bawah 44px: `Button size="sm"` 36->44px (`h-11`), `FilterPill` (`h-11`), AppShell back/avatar/refresh/bell/sync-chip (`size-9`/`p-2` -> `size-11`), tombol header & WebGL-fallback nav di `Route`/`RouteMap` (`size-10` -> `size-11`), pill alasan SOS `h-9`->`h-11`, pill Incidents `py-1.5`->`h-11`, link kecil "Lihat semua"/"Keluar"/"Hapus"/"Nanti" di Dashboard/LockScreen/Proof/OfferSheet diberi `h-11`, `ToggleSwitch` diberi hit-area `-inset-3`; (b) hapus hex literal dari komponen: `Sparkline` & `RouteMap` pakai `globalTokens.amber[500]`/`white`, `Proof` pakai `globalTokens.umber[950]`; (c) perbaiki bug class invalid `text-ink0` -> `text-ink-muted` di `OfferSheet`.
+- **Alasan:** memenuhi DoD UI blueprint §12 ("Target sentuh >= 44px di semua elemen interaktif" dan "grep hex literal di src/pages & src/components/ui hasilnya nol"); menemukan kelas Tailwind tidak valid `text-ink0` saat audit.
+- **Trade-off:** komponen sedikit lebih besar secara visual (pill, tombol sm, ikon header) demi kenyamanan sentuh; `ToggleSwitch` visual tetap kecil tapi area sentuh melebar 48px via pseudo-element.
+- **Sumber:** COURIER_UI_MODERNIZATION_BLUEPRINT §12; audit `npm run verify` hijau (6 file / 65 test).
+
 ### D-017 - Route cache berbasis DB (TTL 24 jam) + wiring ORS Matrix
 - **Keputusan:** outeCache dipindah dari AsyncStorage ke tabel oute_cache pada SQLite (drizzle) dengan TTL 24 jam dan pembersihan otomatis saat app start (pruneRouteCache); saat online + API key ORS tersedia, etchDistanceMatrix dipakai untuk menjalankan ulang 2-opt/Or-opt dengan jarak jalan asli sebagai pengganti Haversine.
 - **Alasan:** blueprint §4.5 menuntut jarak jalan asli bila online; cache DB lebih tahan-besar daripada AsyncStorage dan bisa diprune.

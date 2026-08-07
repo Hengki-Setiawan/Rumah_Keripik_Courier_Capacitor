@@ -71,7 +71,7 @@ export default function LockScreen() {
         </button>
       </div>
 
-      <button onClick={() => setCourier(null)} className="text-xs text-ink underline">
+      <button onClick={() => setCourier(null)} className="flex h-11 items-center px-2 text-xs text-ink underline">
         Keluar dan kembali ke login
       </button>
     </div>

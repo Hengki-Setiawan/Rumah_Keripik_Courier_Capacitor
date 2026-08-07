@@ -48,7 +48,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-full p-2 text-ink-muted hover:text-ink" aria-label="Tutup">
+          <button onClick={onClose} className="flex size-11 items-center justify-center rounded-full text-ink-muted hover:text-ink" aria-label="Tutup">
             <X className="size-5" />
           </button>
         </div>

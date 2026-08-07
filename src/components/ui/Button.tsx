@@ -21,7 +21,7 @@ const variantClasses: Record<Variant, string> = {
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm rounded-xl gap-1.5',
+  sm: 'h-11 px-3 text-sm rounded-xl gap-1.5',
   md: 'h-12 px-5 text-[15px] rounded-2xl gap-2',
   lg: 'h-14 px-6 text-base rounded-2xl gap-2.5',
   xl: 'h-16 px-6 text-lg rounded-2xl gap-3',

@@ -18,6 +18,7 @@ export function ToggleSwitch({ checked, onChange, disabled, label }: ToggleSwitc
       onClick={() => onChange(!checked)}
       className={cn(
         'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+        'before:absolute before:-inset-3 before:content-[""]',
         checked ? 'bg-brand' : 'bg-ink-muted/40',
         disabled && 'opacity-50 pointer-events-none',
       )}

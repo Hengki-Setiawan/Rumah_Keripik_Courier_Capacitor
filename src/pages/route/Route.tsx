@@ -67,7 +67,7 @@ export default function Route() {
         <button
           aria-label="Kembali"
           onClick={() => navigate('/')}
-          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
+          className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
         >
           <RefreshCw className="size-5 rotate-180" />
         </button>
@@ -75,7 +75,7 @@ export default function Route() {
         <button
           aria-label="Notifikasi"
           onClick={() => navigate('/notifications')}
-          className="pointer-events-auto flex size-10 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
+          className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
         >
           <Bell className="size-5" />
         </button>

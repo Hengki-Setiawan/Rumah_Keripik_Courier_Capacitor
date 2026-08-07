@@ -111,7 +111,7 @@ export default function SOS() {
                 key={r}
                 onClick={() => setReason(r)}
                 className={cn(
-                  'h-9 rounded-full px-4 text-sm font-medium transition-colors',
+                  'h-11 rounded-full px-4 text-sm font-medium transition-colors',
                   reason === r ? 'bg-alert text-on-danger' : 'bg-surface-subtle text-ink-secondary',
                 )}
               >

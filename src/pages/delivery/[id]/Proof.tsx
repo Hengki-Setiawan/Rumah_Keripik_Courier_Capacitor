@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { isNative } from '@/lib/env';
+import { globalTokens } from '@/tokens/global';
 
 export default function Proof() {
   const { id } = useParams<{ id: string }>();
@@ -120,14 +121,14 @@ export default function Proof() {
             <SignatureCanvas
               ref={sigRef}
               canvasProps={{ width: 600, height: 200, className: 'w-full' }}
-              penColor="#120f0d"
+              penColor={globalTokens.umber[950]}
             />
           </div>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-[10px] text-umber-600">Tanda tangani di area di atas</span>
             <button
               onClick={() => sigRef.current?.clear()}
-              className="text-[10px] font-semibold text-umber-500 underline"
+              className="flex h-11 items-center px-2 text-[10px] font-semibold text-umber-500 underline"
             >
               Hapus
             </button>

@@ -132,7 +132,7 @@ export default function Dashboard() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ink">Berikutnya</h3>
-            <button onClick={() => navigate('/history')} className="text-xs text-brand-pressed">
+            <button onClick={() => navigate('/history')} className="flex h-11 items-center px-1 text-xs text-brand-pressed">
               Lihat semua
             </button>
           </div>

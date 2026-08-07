@@ -92,7 +92,7 @@ export default function Incidents() {
               <button
                 key={opt.value}
                 onClick={() => setSelected(opt)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`flex h-11 items-center rounded-full border px-3 text-xs font-medium transition-colors ${
                   selected.value === opt.value ? 'bg-brand text-on-accent border-brand' : 'bg-surface border-border-subtle text-ink-secondary'
                 }`}
               >

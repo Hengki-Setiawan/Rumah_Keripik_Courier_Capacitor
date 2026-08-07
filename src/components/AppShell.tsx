@@ -31,7 +31,7 @@ export function AppShell({ children, title, activeTab, onTabChange, onRefresh, o
               <button
                 onClick={onBack}
                 aria-label="Kembali"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-raised text-ink-secondary shadow-card active:scale-95 transition-transform"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-raised text-ink-secondary shadow-card active:scale-95 transition-transform"
               >
                 <ArrowLeft className="size-5" />
               </button>
@@ -39,7 +39,7 @@ export function AppShell({ children, title, activeTab, onTabChange, onRefresh, o
               <button
                 onClick={() => setSettingsOpen(true)}
                 aria-label="Menu pengaturan"
-                className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-pressed font-bold text-sm active:scale-95 transition-transform"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand-pressed font-bold text-sm active:scale-95 transition-transform"
               >
                 {courier.name?.charAt(0) ?? 'K'}
               </button>
@@ -58,14 +58,14 @@ export function AppShell({ children, title, activeTab, onTabChange, onRefresh, o
             {pendingCount > 0 && (
               <button
                 onClick={() => syncNow()}
-                className="flex items-center gap-1 rounded-full bg-brand-soft px-2 py-1 text-[10px] font-semibold text-brand-pressed"
+                className="flex h-11 items-center gap-1 rounded-full bg-brand-soft px-2 text-[10px] font-semibold text-brand-pressed"
               >
                 <CloudUpload className={cn('size-3', isSyncing && 'animate-pulse')} />
                 {pendingCount}
               </button>
             )}
             {onRefresh && (
-              <button onClick={onRefresh} className="rounded-full p-2 text-ink-muted hover:text-ink">
+              <button onClick={onRefresh} className="flex size-11 items-center justify-center rounded-full text-ink-muted hover:text-ink">
                 <svg className={cn('size-4', isSyncing && 'animate-spin')} viewBox="0 0 24 24" fill="none">
                   <path d="M20 11A8 8 0 104 11m0 0v-6m0 6h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                 </svg>
@@ -73,7 +73,7 @@ export function AppShell({ children, title, activeTab, onTabChange, onRefresh, o
             )}
             <button
               onClick={() => navigate('/notifications')}
-              className="relative rounded-full p-2 text-ink-muted hover:text-ink"
+              className="flex size-11 items-center justify-center rounded-full text-ink-muted hover:text-ink"
             >
               <Bell className="size-5" />
             </button>

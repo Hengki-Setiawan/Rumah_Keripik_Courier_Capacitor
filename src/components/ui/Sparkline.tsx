@@ -1,4 +1,7 @@
 import { useId } from 'react';
+import { globalTokens } from '@/tokens/global';
+
+const BRAND = globalTokens.amber[500];
 
 interface SparklineProps {
   values: number[];
@@ -38,14 +41,14 @@ export function Sparkline({ values, width = 280, height = 48, className }: Spark
     <svg viewBox={`0 0 ${width} ${height}`} className={className} width={width} height={height} role="img" aria-label="Tren pendapatan 7 hari">
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#c55a2b" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#c55a2b" stopOpacity="0" />
+          <stop offset="0%" stopColor={BRAND} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={BRAND} stopOpacity="0" />
         </linearGradient>
       </defs>
       <polygon points={area} fill={`url(#${gradientId})`} />
-      <polyline points={line} fill="none" stroke="#c55a2b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={line} fill="none" stroke={BRAND} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {points.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3 : 2} fill="#c55a2b" />
+        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3 : 2} fill={BRAND} />
       ))}
     </svg>
   );

@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { TriangleAlert, Navigation } from 'lucide-react';
 import { MAP_STYLE_LIGHT } from '@/lib/map/tileStyle';
 import { WAREHOUSE } from '@/lib/routing/types';
+import { globalTokens } from '@/tokens/global';
 import type { OptimizedRoute } from '@/lib/routing/types';
 import { cn } from '@/lib/cn';
 
@@ -117,7 +118,7 @@ function WebGlFallback({ route }: { route: OptimizedRoute | null }) {
               <button
                 aria-label={`Navigasi ke titik ${idx + 1}`}
                 onClick={() => openNavigation(stop.lat, stop.lng)}
-                className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand active:scale-95 transition-transform"
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand active:scale-95 transition-transform"
               >
                 <Navigation className="size-5" />
               </button>
@@ -198,13 +199,13 @@ export function RouteMap({
             <Layer
               id="route-line-outline"
               type="line"
-              paint={{ 'line-color': '#FFFFFF', 'line-width': 8, 'line-opacity': 0.9 }}
+              paint={{ 'line-color': globalTokens.white, 'line-width': 8, 'line-opacity': 0.9 }}
               layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             />
             <Layer
               id="route-line-main"
               type="line"
-              paint={{ 'line-color': '#c55a2b', 'line-width': 5 }}
+              paint={{ 'line-color': globalTokens.amber[500], 'line-width': 5 }}
               layout={{ 'line-cap': 'round', 'line-join': 'round' }}
             />
           </Source>
