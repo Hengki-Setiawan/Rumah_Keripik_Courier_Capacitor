@@ -38,8 +38,8 @@ Secret yang diperlukan (Repository â†’ Settings â†’ Secrets and variab
 ## Struktur
 
 - `src/pages/` â€” satu file per layar (`Dashboard`, `Shift`, `Route`, `delivery/[id]`, dll)
-- src/components/ui/ - component library (Button, Card, StatCard, FilterPill, EmptyState, ToggleSwitch, ScoreRing, Sparkline, CollapsingHeader, BottomTabBar, BottomSheet, FAB, StatusBadge, Skeleton, NumpadKey, RouteMap, RouteBottomSheet)
+- src/components/ui/ - component library (Button, Card, StatCard, FilterPill, EmptyState, ToggleSwitch, ScoreRing, Sparkline, CollapsingHeader, BottomTabBar, BottomSheet, FAB, StatusBadge, Skeleton, NumpadKey, RouteMap, RouteBottomSheet, LiveNavigationHud, ToastContainer)
 - `src/lib/` â€” api-client (CapacitorHttp), background-location, notifications (FCM), live-update (Capgo), secure storage, db (SQLite + Drizzle), sync offline queue
-- src/lib/routing/ - optimasi rute client-side (TSP nearest-neighbor, 2-opt, Or-opt, ORS Matrix utk jarak jalan-asli saat online, ORS client, OSRM fallback, polyline decoder, route cache SQLite TTL 24 jam)
-- `src/stores/` â€” Zustand (auth, delivery, sync, theme)
+- src/lib/routing/ - optimasi rute client-side (TSP nearest-neighbor, 2-opt, Or-opt, ORS Matrix utk jarak jalan-asli saat online, ORS client, OSRM fallback, polyline decoder, route cache SQLite TTL 24 jam, tracking: tween marker + deteksi keluar-rute)
+- `src/stores/` â€” Zustand (auth, delivery, sync, theme, toast)
 - `src/tokens/` â€” design token 3 lapis (global/semantic/component)

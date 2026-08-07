@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Bell, Crosshair } from 'lucide-react';
+import { RefreshCw, Bell, Crosshair, LocateFixed } from 'lucide-react';
 import { RouteMap } from '@/components/ui/RouteMap';
 import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
+import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
 import { FAB } from '@/components/ui/FAB';
 import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
+import { useCourierTracking } from '@/hooks/useCourierTracking';
+import { toast } from '@/stores/toast-store';
 import type { SnapPoint } from '@/components/ui/BottomSheet';
 
 function openNavigation(lat: number, lng: number) {
@@ -19,7 +22,8 @@ function openNavigation(lat: number, lng: number) {
 export default function Route() {
   const navigate = useNavigate();
   const { data: route, isLoading, refetch, isFetching } = useOptimizedRoute();
-  const userLocation = useUserLocation();
+  const rawLocation = useUserLocation();
+  const tracking = useCourierTracking(rawLocation, route ?? null);
   const [snap, setSnap] = useState<SnapPoint>('peek');
   const [activeStopIndex, setActiveStopIndex] = useState(0);
   const [mapBump, setMapBump] = useState(0);
@@ -36,6 +40,13 @@ export default function Route() {
     }
   }
 
+  // Feedback ringan: rute keluar dari rute (sudah ada banner peta; toast sebagai pelengkap).
+  useEffect(() => {
+    if (tracking.offRoute) {
+      toast.warning('Anda keluar dari rute - kembali ke rute atau optimalkan ulang');
+    }
+  }, [tracking.offRoute]);
+
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-surface">
       <RouteMap
@@ -43,7 +54,12 @@ export default function Route() {
         route={route ?? null}
         activeStopIndex={activeStopIndex}
         onStopMarkerPress={handleStopMarkerPress}
-        userLocation={userLocation}
+        userLocation={tracking.position}
+        userBearing={tracking.bearing}
+        offRoute={tracking.offRoute}
+        offRouteDeviationM={tracking.offRouteDeviationM}
+        followMode={tracking.followMode}
+        onFollowModeChange={tracking.setFollowMode}
       />
 
       {/* Header transparan mengambang */}
@@ -65,6 +81,13 @@ export default function Route() {
         </button>
       </div>
 
+      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps */}
+      <LiveNavigationHud
+        route={route ?? null}
+        activeStopIndex={activeStopIndex}
+        courierLocation={tracking.position}
+      />
+
       {/* Navigasi ke stop aktif */}
       {activeLat != null && activeLng != null && (
         <FAB
@@ -73,6 +96,17 @@ export default function Route() {
           variant="overlay"
           className="absolute right-3 z-20 bottom-[190px]"
           onClick={() => openNavigation(activeLat, activeLng)}
+        />
+      )}
+
+      {/* Recenter peta ke posisi kurir (aktifkan ulang follow camera) */}
+      {!tracking.followMode && tracking.position && (
+        <FAB
+          icon={<LocateFixed className="size-6" />}
+          ariaLabel="Kembali ke posisi saya"
+          variant="overlay"
+          className="absolute right-3 z-20 bottom-[140px]"
+          onClick={() => tracking.setFollowMode(true)}
         />
       )}
 

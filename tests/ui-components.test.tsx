@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { Button, Spinner } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FilterPill } from '@/components/ui/FilterPill';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ToastContainer } from '@/components/ui/ToastContainer';
+import { toast, useToastStore } from '@/stores/toast-store';
 
 describe('Button', () => {
   it('renders children dan menerapkan variant/size default', () => {
@@ -101,5 +103,33 @@ describe('EmptyState', () => {
     render(<EmptyState icon={<span>i</span>} title="Kosong" actionLabel="Muat Ulang" onAction={onAction} />);
     fireEvent.click(screen.getByRole('button', { name: 'Muat Ulang' }));
     expect(onAction).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ToastContainer', () => {
+  it('merender pesan yang di-push via store helper', () => {
+    toast.success('Shift dimulai');
+    render(<ToastContainer />);
+    expect(screen.getByText('Shift dimulai')).toBeInTheDocument();
+    // Reset agar tidak bocor ke test lain.
+    useToastStore.setState({ toasts: [] });
+  });
+
+  it('variasi warning memakai ikon peringatan', () => {
+    toast.warning('Anda keluar dari rute');
+    render(<ToastContainer />);
+    expect(screen.getByText('Anda keluar dari rute')).toBeInTheDocument();
+    useToastStore.setState({ toasts: [] });
+  });
+
+  it('menghilangkan toast yang di-dismiss', () => {
+    useToastStore.getState().push('Pesan sementara');
+    const { getByText, queryByText } = render(<ToastContainer />);
+    expect(getByText('Pesan sementara')).toBeInTheDocument();
+    const id = useToastStore.getState().toasts[0]?.id;
+    if (id) {
+      act(() => useToastStore.getState().dismiss(id));
+    }
+    expect(queryByText('Pesan sementara')).not.toBeInTheDocument();
   });
 });

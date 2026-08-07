@@ -6,6 +6,13 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
+    // Whitelist domain eksternal (blueprint §8): tile peta OpenFreeMap + routing ORS/OSRM.
+    allowNavigation: [
+      'tiles.openfreemap.org',
+      'api.openrouteservice.org',
+      'router.project-osrm.org',
+      'routing.openstreetmap.de',
+    ],
   },
   android: {
     allowMixedContent: false,

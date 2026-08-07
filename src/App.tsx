@@ -22,6 +22,7 @@ import LockScreen from '@/pages/lock/LockScreen';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { OfferSheet } from '@/components/OfferSheet';
 import { HardwareBackHandler } from '@/components/HardwareBackHandler';
+import { ToastContainer } from '@/components/ui/ToastContainer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,6 +94,7 @@ export default function App() {
         </Routes>
         <OfferSheet />
         <HardwareBackHandler />
+        <ToastContainer />
       </BrowserRouter>
     </QueryClientProvider>
   );

@@ -17,12 +17,19 @@
 | COURIER_CAPACITOR_MIGRATION | F6 Push & Live Update | ✅ Selesai |
 | COURIER_CAPACITOR_MIGRATION | F7 Uji Paralel Lapangan | ⏳ Belum (operasional) |
 | COURIER_CAPACITOR_MIGRATION | F8 Cutover | ⏳ Belum (tergantung F7) |
+| COURIER_MAP_ROUTING_UPGRADE_BLUEPRINT | Fase D (fitur lanjutan) | ✅ Selesai (live tracking halus, off-route, HUD, follow cam) |
 | COURIER_UI_CSS_OVERHAUL | Fase A Fondasi | ✅ Selesai |
 | COURIER_UI_CSS_OVERHAUL | Fase B Component Library | ✅ Selesai (8/10; 2 diganti solusi native CSS) |
 | COURIER_UI_CSS_OVERHAUL | Fase C Migrasi Layar | ✅ Selesai (10 layar) |
 | COURIER_UI_CSS_OVERHAUL | Fase D Hapus StyleSheet lama | N/A (codebase baru, tidak ada StyleSheet RN) |
 
 ## 2. Daftar Keputusan
+
+### D-018 - Fase D blueprint map: live tracking halus, off-route detection, LiveNavigationHud + toast global
+- **Keputusan:** Mengimplementasikan fitur lanjutan opsional dari blueprint peta Fase D: (a) tween interpolasi posisi kurir (450ms easing) + rotasi ikon sesuai bearing di `useCourierTracking`/`RouteMap`; (b) mode follow-camera (`easeTo`) yang nonaktif otomatis saat user menggeser peta dan aktif lagi via FAB recenter; (c) deteksi keluar rute (>80m dari polyline >30 dtk) di `tracking.ts` dengan banner + toast; (d) `LiveNavigationHud` overlay jarak/ETA + tombol Google Maps; (e) sistem toast global (`toast-store.ts` + `ToastContainer`) dan `prefers-reduced-motion`. Juga menambah `server.allowNavigation` whitelist domain peta/routing dan men-deprecate `VITE_GOOGLE_MAPS_API_KEY`.
+- **Alasan:** blueprint peta §6.1-6.3 (fitur lanjutan), §8 (whitelist domain), UI blueprint §8 (toast) & §10.3 (reduced motion); user meminta "lakukan semuanya maksimal".
+- **Trade-off:** tween menambah sedikit latency tampilan posisi (450ms) demi gerak halus; off-route detection berjalan interval 2 detik (hemat CPU); `prefers-reduced-motion` global mematikan semua animasi/transisi bagi user yang memintanya.
+- **Sumber:** COURIER_MAP_ROUTING_UPGRADE_BLUEPRINT §6.1-6.3, §8; COURIER_UI_MODERNIZATION_BLUEPRINT §8, §10.3.
 
 ### D-017 - Route cache berbasis DB (TTL 24 jam) + wiring ORS Matrix
 - **Keputusan:** outeCache dipindah dari AsyncStorage ke tabel oute_cache pada SQLite (drizzle) dengan TTL 24 jam dan pembersihan otomatis saat app start (pruneRouteCache); saat online + API key ORS tersedia, etchDistanceMatrix dipakai untuk menjalankan ulang 2-opt/Or-opt dengan jarak jalan asli sebagai pengganti Haversine.

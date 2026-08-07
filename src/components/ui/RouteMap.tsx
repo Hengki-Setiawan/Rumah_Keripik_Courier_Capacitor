@@ -22,6 +22,11 @@ interface RouteMapProps {
   activeStopIndex?: number;
   onStopMarkerPress?: (deliveryId: string) => void;
   userLocation?: { lat: number; lng: number } | null;
+  userBearing?: number | null;
+  offRoute?: boolean;
+  offRouteDeviationM?: number | null;
+  followMode?: boolean;
+  onFollowModeChange?: (on: boolean) => void;
 }
 
 function StopMarkerIcon({ number, active }: { number: number; active?: boolean }) {
@@ -54,12 +59,25 @@ function WarehouseMarkerIcon() {
   );
 }
 
-function CourierMarkerIcon() {
+function CourierMarkerIcon({ bearing, offRoute }: { bearing?: number | null; offRoute?: boolean }) {
   return (
-    <div className="relative flex size-8 items-center justify-center rounded-full bg-ok text-on-accent shadow-card ring-2 ring-white">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <circle cx="12" cy="12" r="3" />
-        <path d="M12 2v4M12 18v4M2 12h4M18 12h4" />
+    <div
+      className={cn(
+        'relative flex size-8 items-center justify-center rounded-full shadow-card ring-2 transition-colors duration-300',
+        offRoute ? 'bg-warn ring-warn/60' : 'bg-ok ring-white',
+      )}
+      style={bearing != null ? { transform: `rotate(${bearing}deg)` } : undefined}
+    >
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="text-on-accent"
+      >
+        <path d="M12 2l2.4 9.6L24 12l-9.6 2.4L12 24l-2.4-9.6L0 12l9.6-2.4L12 2z" />
       </svg>
     </div>
   );
@@ -111,9 +129,21 @@ function WebGlFallback({ route }: { route: OptimizedRoute | null }) {
   );
 }
 
-export function RouteMap({ route, activeStopIndex, onStopMarkerPress, userLocation }: RouteMapProps) {
+export function RouteMap({
+  route,
+  activeStopIndex,
+  onStopMarkerPress,
+  userLocation,
+  userBearing,
+  offRoute,
+  offRouteDeviationM,
+  followMode = true,
+  onFollowModeChange,
+}: RouteMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const webglSupported = useMemo(() => supportsWebGL(), []);
+  const followModeRef = useRef(followMode);
+  followModeRef.current = followMode;
 
   useEffect(() => {
     const map = mapRef.current?.getMap();
@@ -127,6 +157,13 @@ export function RouteMap({ route, activeStopIndex, onStopMarkerPress, userLocati
       { padding: { top: 90, bottom: 300, left: 40, right: 40 }, duration: 600 },
     );
   }, [route]);
+
+  // Mode follow camera: easeTo posisi kurir setiap kali userLocation berubah.
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map || !userLocation || !followMode) return;
+    map.easeTo({ center: [userLocation.lng, userLocation.lat], duration: 300 });
+  }, [userLocation, followMode]);
 
   const geojsonLine = useMemo(() => {
     if (!route || route.legs.length === 0) return null;
@@ -151,6 +188,10 @@ export function RouteMap({ route, activeStopIndex, onStopMarkerPress, userLocati
         initialViewState={{ longitude: WAREHOUSE.lng, latitude: WAREHOUSE.lat, zoom: 12 }}
         style={{ width: '100%', height: '100%' }}
         attributionControl={{ compact: true }}
+        onDragStart={() => {
+          // Geser manual = user ingin eksplorasi peta -> matikan follow camera.
+          if (followModeRef.current) onFollowModeChange?.(false);
+        }}
       >
         {geojsonLine && (
           <Source id="route-line" type="geojson" data={geojsonLine}>
@@ -187,7 +228,7 @@ export function RouteMap({ route, activeStopIndex, onStopMarkerPress, userLocati
 
         {userLocation && (
           <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
-            <CourierMarkerIcon />
+            <CourierMarkerIcon bearing={userBearing} offRoute={offRoute} />
           </Marker>
         )}
       </Map>
@@ -196,6 +237,16 @@ export function RouteMap({ route, activeStopIndex, onStopMarkerPress, userLocati
         <div className="absolute top-[calc(env(safe-area-inset-top)+56px)] left-4 right-4 flex items-center gap-2 rounded-2xl bg-warn-soft px-4 py-2.5 text-sm text-warn shadow-card">
           <TriangleAlert className="size-4 shrink-0" />
           <span>Rute perkiraan (offline) - akan disinkronkan otomatis saat online kembali.</span>
+        </div>
+      )}
+
+      {offRoute && (
+        <div className="absolute top-[calc(env(safe-area-inset-top)+104px)] left-4 right-4 flex items-center gap-2 rounded-2xl bg-warn px-4 py-2.5 text-sm font-semibold text-on-accent shadow-card">
+          <TriangleAlert className="size-4 shrink-0" />
+          <span>
+            Di luar rute
+            {offRouteDeviationM != null ? ` (${Math.round(offRouteDeviationM)} m)` : ''} - kembali ke rute atau optimalkan ulang
+          </span>
         </div>
       )}
     </div>
