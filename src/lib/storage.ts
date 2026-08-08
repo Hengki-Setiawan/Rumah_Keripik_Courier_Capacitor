@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   courierProfile: 'rk.courier_profile',
   deviceId: 'rk.device_id',
   pinEnabled: 'rk.pin_enabled',
+  pinCode: 'rk.pin_code',
   themeMode: 'rk.theme_mode',
   lastActiveShift: 'rk.last_active_shift',
 } as const;
@@ -17,6 +18,7 @@ const SENSITIVE_KEYS = new Set<string>([
   'rk.access_token',
   'rk.refresh_token',
   'rk.pin_enabled',
+  'rk.pin_code',
 ]);
 
 const memoryStore = new Map<string, string>();

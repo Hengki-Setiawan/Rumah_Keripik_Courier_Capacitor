@@ -13,12 +13,17 @@ interface AuthState {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   pinEnabled: boolean;
+  pinLocked: boolean;
+  hasPin: boolean;
   loginError: string | null;
   bootstrap: () => Promise<void>;
   login: (pin: string) => Promise<{ ok: boolean; error?: string }>;
   refreshProfile: () => Promise<void>;
   logout: () => Promise<void>;
   setPinEnabled: (enabled: boolean) => Promise<void>;
+  setPin: (pin: string) => Promise<void>;
+  verifyPin: (pin: string) => Promise<boolean>;
+  lock: () => void;
   setCourier: (c: CourierDto | null) => void;
 }
 
@@ -39,6 +44,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isBootstrapping: true,
   pinEnabled: false,
+  pinLocked: false,
+  hasPin: false,
   loginError: null,
 
   async bootstrap() {
@@ -46,11 +53,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isBootstrapping: true });
     try {
       const pinEnabled = (await secureStorage.get(STORAGE_KEYS.pinEnabled)) === 'true';
+      const hasPin = (await secureStorage.get(STORAGE_KEYS.pinCode)) != null;
       const courier = await getJson<CourierDto>(STORAGE_KEYS.courierProfile);
       const tokens = (await secureStorage.get(STORAGE_KEYS.accessToken)) != null;
 
       if (tokens && courier) {
-        set({ isAuthenticated: true, courier, pinEnabled });
+        set({ isAuthenticated: true, courier, hasPin, pinEnabled: pinEnabled && hasPin, pinLocked: pinEnabled && hasPin });
         fetchMe()
           .then((fresh) => {
             set({ courier: fresh });
@@ -63,7 +71,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             void setupLiveUpdate({ courierId: courier.id });
           });
       } else {
-        set({ isAuthenticated: false, courier: null, pinEnabled });
+        set({ isAuthenticated: false, courier: null, hasPin, pinEnabled: pinEnabled && hasPin });
       }
     } finally {
       set({ isBootstrapping: false });
@@ -108,8 +116,35 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   async setPinEnabled(enabled) {
-    await secureStorage.set(STORAGE_KEYS.pinEnabled, String(enabled));
-    set({ pinEnabled: enabled });
+    if (enabled) {
+      const existing = (await secureStorage.get(STORAGE_KEYS.pinCode)) != null;
+      if (existing) {
+        await secureStorage.set(STORAGE_KEYS.pinEnabled, 'true');
+        set({ pinEnabled: true });
+      }
+      return;
+    }
+    await secureStorage.remove(STORAGE_KEYS.pinCode);
+    await secureStorage.set(STORAGE_KEYS.pinEnabled, 'false');
+    set({ pinEnabled: false, pinLocked: false, hasPin: false });
+  },
+
+  async setPin(pin) {
+    await secureStorage.set(STORAGE_KEYS.pinCode, pin);
+    await secureStorage.set(STORAGE_KEYS.pinEnabled, 'true');
+    set({ pinEnabled: true, pinLocked: false, hasPin: true });
+  },
+
+  async verifyPin(pin) {
+    const stored = await secureStorage.get(STORAGE_KEYS.pinCode);
+    if (!stored) return false;
+    const ok = stored === pin;
+    if (ok) set({ pinLocked: false });
+    return ok;
+  },
+
+  lock() {
+    set({ pinLocked: true });
   },
 
   setCourier(c) {

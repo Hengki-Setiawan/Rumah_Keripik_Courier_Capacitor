@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import { useAuthStore } from '@/stores/auth-store';
 import { initTheme } from '@/stores/theme-store';
 import { useSyncStore } from '@/stores/sync-store';
@@ -33,6 +35,36 @@ const queryClient = new QueryClient({
   },
 });
 
+function PinLockGate() {
+  const pinEnabled = useAuthStore((s) => s.pinEnabled);
+  const pinLocked = useAuthStore((s) => s.pinLocked);
+  const lock = useAuthStore((s) => s.lock);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let removed = false;
+    const h = CapApp.addListener('appStateChange', (state) => {
+      // Saat app kembali ke foreground, kunci layar bila PIN aktif.
+      if (state.isActive && useAuthStore.getState().pinEnabled) {
+        lock();
+      }
+    });
+    h.then((listener) => {
+      if (removed) listener.remove();
+    });
+    return () => {
+      removed = true;
+      h.then((listener) => listener.remove());
+    };
+  }, [lock]);
+
+  if (pinEnabled && pinLocked && location.pathname !== '/lock') {
+    return <Navigate to="/lock" replace />;
+  }
+  return null;
+}
+
 function Protected() {
   const { isAuthenticated, isBootstrapping } = useAuthStore();
 
@@ -40,22 +72,25 @@ function Protected() {
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   return (
-    <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="/history" element={<HistoryPage />} />
-      <Route path="/stats" element={<StatsPage />} />
-      <Route path="/shift" element={<ShiftPage />} />
-      <Route path="/sos" element={<SosPage />} />
-      <Route path="/earnings" element={<EarningsPage />} />
-      <Route path="/notifications" element={<NotificationsPage />} />
-      <Route path="/incidents" element={<IncidentsPage />} />
-      <Route path="/route" element={<RoutePage />} />
-      <Route path="/battery-guide" element={<BatteryGuidePage />} />
-      <Route path="/delivery/:id" element={<DeliveryDetailPage />} />
-      <Route path="/delivery/:id/proof" element={<ProofPage />} />
-      <Route path="/lock" element={<LockScreen />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <PinLockGate />
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/history" element={<HistoryPage />} />
+        <Route path="/stats" element={<StatsPage />} />
+        <Route path="/shift" element={<ShiftPage />} />
+        <Route path="/sos" element={<SosPage />} />
+        <Route path="/earnings" element={<EarningsPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/incidents" element={<IncidentsPage />} />
+        <Route path="/route" element={<RoutePage />} />
+        <Route path="/battery-guide" element={<BatteryGuidePage />} />
+        <Route path="/delivery/:id" element={<DeliveryDetailPage />} />
+        <Route path="/delivery/:id/proof" element={<ProofPage />} />
+        <Route path="/lock" element={<LockScreen />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
 

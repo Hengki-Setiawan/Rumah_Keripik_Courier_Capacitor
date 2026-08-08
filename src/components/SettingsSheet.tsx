@@ -16,6 +16,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const courier = useAuthStore((s) => s.courier);
   const logout = useAuthStore((s) => s.logout);
   const pinEnabled = useAuthStore((s) => s.pinEnabled);
+  const hasPin = useAuthStore((s) => s.hasPin);
   const setPinEnabled = useAuthStore((s) => s.setPinEnabled);
   const { mode, setMode } = useThemeStore();
   const clearLocal = useSyncStore((s) => s.clearLocal);
@@ -78,7 +79,23 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                 <LockKeyhole className="size-5 text-ink-secondary" />
                 <span className="text-sm text-ink">Kunci PIN</span>
               </div>
-              <ToggleSwitch checked={pinEnabled} onChange={(v) => setPinEnabled(v)} label="Kunci PIN" />
+              <ToggleSwitch
+                checked={pinEnabled}
+                onChange={(v) => {
+                  if (v) {
+                    if (!hasPin) {
+                      onClose();
+                      navigate('/lock?mode=setup');
+                      return;
+                    }
+                    void setPinEnabled(true);
+                  } else {
+                    onClose();
+                    navigate('/lock?mode=disable');
+                  }
+                }}
+                label="Kunci PIN"
+              />
             </div>
           </Card>
 
