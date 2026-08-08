@@ -77,7 +77,7 @@ export default function Notifications() {
                   <div className="flex-1">
                     <p className={cn('text-sm', n.isRead ? 'text-ink-secondary' : 'font-semibold text-ink')}>{n.title}</p>
                     {n.body && <p className="mt-1 text-xs text-ink-muted">{n.body}</p>}
-                    <p className="mt-2 text-[10px] text-ink0">{formatDateTime(n.createdAt)}</p>
+                    <p className="mt-2 text-[10px] text-ink-muted">{formatDateTime(n.createdAt)}</p>
                   </div>
                   {!n.isRead && <span className="mt-1 size-2 shrink-0 rounded-full bg-brand" />}
                 </div>

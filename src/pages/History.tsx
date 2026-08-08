@@ -30,9 +30,9 @@ export default function History() {
       case 'Gagal':
         return { text: 'Gagal', cls: 'bg-alert-soft text-alert' };
       case 'Dalam_Pengiriman':
-        return { text: 'Dalam Pengiriman', cls: 'bg-blue-500/15 text-blue-400' };
+        return { text: 'Dalam Pengiriman', cls: 'bg-info-soft text-info' };
       default:
-        return { text: s, cls: 'bg-ink-muted/40/40 text-ink-secondary' };
+        return { text: s, cls: 'bg-ink-muted/40 text-ink-secondary' };
     }
   }
 
@@ -79,7 +79,7 @@ export default function History() {
                       </span>
                     </div>
                   </div>
-                  <span className="text-[10px] text-ink0">{formatTime(d.created_at)}</span>
+                  <span className="text-[10px] text-ink-muted">{formatTime(d.created_at)}</span>
                 </div>
               </Card>
             );

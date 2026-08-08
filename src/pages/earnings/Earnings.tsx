@@ -58,14 +58,14 @@ export default function Earnings() {
           <p className="text-xs text-ink-muted">Total Pendapatan Terkonfirmasi</p>
           <p className="text-3xl font-bold text-brand">{formatCurrency(total)}</p>
           {data?.summary.pendingTotal !== undefined && data.summary.pendingTotal > 0 && (
-            <p className="text-xs text-ink0">
+            <p className="text-xs text-ink-muted">
               + {formatCurrency(data.summary.pendingTotal)} belum dikonfirmasi
             </p>
           )}
           {sparkValues.length >= 2 && (
             <div className="mt-3 w-full max-w-[280px]">
               <Sparkline values={sparkValues} className="mx-auto" />
-              <p className="mt-1 text-center text-[10px] text-ink0">Tren pendapatan harian (7 hari terakhir)</p>
+              <p className="mt-1 text-center text-[10px] text-ink-muted">Tren pendapatan harian (7 hari terakhir)</p>
             </div>
           )}
         </Card>
@@ -89,7 +89,7 @@ export default function Earnings() {
                     Pengiriman #{e.id}
                     {e.note ? ` · ${e.note}` : ''}
                   </p>
-                  <p className="mt-0.5 text-xs text-ink0">{formatDateTime(e.createdAt)}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">{formatDateTime(e.createdAt)}</p>
                 </div>
                 <span className="text-sm font-bold text-ok">+{formatCurrency(e.baseFee + e.bonusAmount)}</span>
               </Card>

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { RefreshCw, Bell, Crosshair, LocateFixed } from 'lucide-react';
+import { ArrowLeft, Bell, Crosshair, LocateFixed } from 'lucide-react';
 import { RouteMap } from '@/components/ui/RouteMap';
 import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
 import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
 import { TurnByTurnHud } from '@/components/ui/TurnByTurnHud';
 import { FAB } from '@/components/ui/FAB';
+import { openExternalNavigation } from '@/lib/openMaps';
 import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
@@ -17,14 +18,6 @@ import { haversineMeters } from '@/lib/routing/distance';
 import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
 import type { SnapPoint } from '@/components/ui/BottomSheet';
-
-function openNavigation(lat: number, lng: number) {
-  const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === 'MacIntel';
-  const url = isApple
-    ? `maps://maps.google.com/?daddr=${lat},${lng}`
-    : `google.navigation:q=${lat},${lng}`;
-  window.location.href = url;
-}
 
 export default function Route() {
   const navigate = useNavigate();
@@ -136,7 +129,7 @@ export default function Route() {
           onClick={() => navigate('/')}
           className="pointer-events-auto flex size-11 items-center justify-center rounded-full bg-white/90 text-ink shadow-card backdrop-blur active:scale-95 transition-transform"
         >
-          <RefreshCw className="size-5 rotate-180" />
+          <ArrowLeft className="size-5" />
         </button>
         <p className="text-sm font-semibold text-white drop-shadow">Rute Hari Ini</p>
         <button
@@ -167,7 +160,7 @@ export default function Route() {
           ariaLabel="Navigasi ke titik aktif"
           variant="overlay"
           className="absolute right-3 z-20 bottom-[190px]"
-          onClick={() => openNavigation(activeLat, activeLng)}
+          onClick={() => openExternalNavigation(activeLat, activeLng)}
         />
       )}
 

@@ -37,7 +37,7 @@ export function RouteBottomSheet({
               {stops.length} titik pemberhentian
               {route
                 ? ` · ~${(route.totalDistanceMeters / 1000).toFixed(1)} km` +
-                  (route.totalDurationSeconds ? ` · ±${Math.round(route.totalDurationSeconds / 60)} menit` : '')
+                  (route.totalDurationSeconds ? ` · ~${Math.round(route.totalDurationSeconds / 60)} menit` : '')
                 : ''}
             </p>
           </div>

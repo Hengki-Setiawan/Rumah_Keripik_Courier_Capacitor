@@ -211,7 +211,7 @@ export default function Shift() {
                 <span className="relative inline-flex size-3 rounded-full bg-ok" />
               </span>
               <p className="text-sm font-semibold text-ink">Tracking lokasi aktif</p>
-              <p className="ml-auto text-[11px] text-ink0">Lokasi dikirim berkala</p>
+              <p className="ml-auto text-[11px] text-ink-muted">Lokasi dikirim berkala</p>
             </div>
           </Card>
         )}
@@ -249,7 +249,7 @@ export default function Shift() {
                     {formatTime(a.clockInAt)}
                     {a.clockOutAt ? ` - ${formatTime(a.clockOutAt)}` : ' - sekarang'}
                   </span>
-                  <span className="text-ink0">
+                  <span className="text-ink-muted">
                     {a.status === 'flagged_no_geofence' ? 'Luar zona' : a.clockOutAt ? 'Selesai' : 'Berjalan'}
                   </span>
                 </div>
@@ -258,7 +258,7 @@ export default function Shift() {
           )}
         </Card>
 
-        <p className="text-center text-[11px] text-ink0">
+        <p className="text-center text-[11px] text-ink-muted">
           Jika offline, aksi shift akan disimpan dan dikirim otomatis saat kembali online.
         </p>
       </div>

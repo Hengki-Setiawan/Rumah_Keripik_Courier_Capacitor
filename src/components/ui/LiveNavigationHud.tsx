@@ -2,14 +2,8 @@ import { Navigation, MapPin } from 'lucide-react';
 import type { OptimizedRoute } from '@/lib/routing/types';
 import { haversineMeters } from '@/lib/routing/distance';
 import { remainingDistanceToEndM } from '@/lib/routing/navigation';
+import { openExternalNavigation } from '@/lib/openMaps';
 import { cn } from '@/lib/cn';
-
-function openNavigation(lat: number, lng: number) {
-  const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === 'MacIntel';
-  window.location.href = isApple
-    ? `maps://maps.google.com/?daddr=${lat},${lng}`
-    : `google.navigation:q=${lat},${lng}`;
-}
 
 interface LiveNavigationHudProps {
   route: OptimizedRoute | null;
@@ -51,7 +45,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
         className,
       )}
     >
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
         <MapPin className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
@@ -62,7 +56,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
             <span className="text-ok">Kurang dari 400 m - segera tiba</span>
           ) : (
             <span>
-              {distanceM >= 1000 ? `${(distanceM / 1000).toFixed(1)} km` : `${Math.round(distanceM)} m`} &middot; ±
+              {distanceM >= 1000 ? `${(distanceM / 1000).toFixed(1)} km` : `${Math.round(distanceM)} m`} &middot; ~
               {etaMin} menit
             </span>
           )}
@@ -70,7 +64,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
       </div>
       <button
         aria-label="Buka navigasi di Google Maps"
-        onClick={() => openNavigation(stop.lat, stop.lng)}
+        onClick={() => openExternalNavigation(stop.lat, stop.lng)}
         className="pointer-events-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-on-accent shadow-card transition-transform active:scale-95"
       >
         <Navigation className="size-5" />

@@ -29,7 +29,7 @@ export function BottomTabBar({ active, onChange }: BottomTabBarProps) {
                 isActive ? 'text-brand' : 'text-ink-muted',
               )}
             >
-              <Icon className={cn('size-5', isActive && 'drop-shadow-glow')} strokeWidth={isActive ? 2.4 : 1.8} />
+              <Icon className={cn('size-5', isActive && 'drop-shadow-[0_0_6px_rgba(217,119,6,0.45)]')} strokeWidth={isActive ? 2.4 : 1.8} />
               {label}
             </button>
           );

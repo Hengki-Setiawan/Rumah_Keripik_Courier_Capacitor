@@ -5,6 +5,7 @@ import { TriangleAlert, Navigation } from 'lucide-react';
 import { MAP_STYLE_LIGHT } from '@/lib/map/tileStyle';
 import { WAREHOUSE } from '@/lib/routing/types';
 import { globalTokens } from '@/tokens/global';
+import { openExternalNavigation } from '@/lib/openMaps';
 import type { OptimizedRoute } from '@/lib/routing/types';
 import { cn } from '@/lib/cn';
 
@@ -85,18 +86,11 @@ function CourierMarkerIcon({ bearing, offRoute }: { bearing?: number | null; off
   );
 }
 
-function openNavigation(lat: number, lng: number) {
-  const isApple = /iPad|iPhone|iPod/.test(navigator.userAgent) || navigator.platform === 'MacIntel';
-  window.location.href = isApple
-    ? `maps://maps.google.com/?daddr=${lat},${lng}`
-    : `google.navigation:q=${lat},${lng}`;
-}
-
 /** Fallback saat WebGL tidak tersedia (device low-end, D-016) — peta tidak bisa dirender. */
 function WebGlFallback({ route }: { route: OptimizedRoute | null }) {
   const stops = route?.orderedStops ?? [];
   return (
-    <div className="absolute inset-0 z-0 overflow-y-auto bg-surface-subtle">
+    <div className="absolute inset-0 z-0 overflow-y-auto bg-surface">
       <div className="flex flex-col gap-3 px-4 pb-8 pt-[calc(env(safe-area-inset-top)+64px)]">
         <div className="flex items-center gap-3 rounded-2xl bg-warn-soft px-4 py-3 text-warn shadow-card">
           <TriangleAlert className="size-5 shrink-0" />
@@ -118,8 +112,8 @@ function WebGlFallback({ route }: { route: OptimizedRoute | null }) {
               </div>
               <button
                 aria-label={`Navigasi ke titik ${idx + 1}`}
-                onClick={() => openNavigation(stop.lat, stop.lng)}
-                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-brand active:scale-95 transition-transform"
+                onClick={() => openExternalNavigation(stop.lat, stop.lng)}
+                className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand active:scale-95 transition-transform"
               >
                 <Navigation className="size-5" />
               </button>

@@ -62,7 +62,7 @@ export default function Stats() {
           />
         </div>
 
-        {isLoading && <p className="text-center text-xs text-ink0">Memuat statistik...</p>}
+        {isLoading && <p className="text-center text-xs text-ink-muted">Memuat statistik...</p>}
       </div>
     </AppShell>
   );
