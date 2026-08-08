@@ -16,6 +16,8 @@ function backoffDelayMs(attempts: number): number {
   return BACKOFF_MS[Math.min(attempts, BACKOFF_MS.length - 1)];
 }
 
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export async function enqueueAction(input: OfflineActionInput): Promise<QueueItem | undefined> {
   if (!isNative) {
     try {
@@ -75,6 +77,7 @@ export async function flushSyncQueue(): Promise<{ synced: number; failed: number
     } catch {
       await db.markQueueItem(item.id!, false);
       failed += 1;
+      await sleep(backoffDelayMs(item.attempts));
     }
   }
   return { synced, failed };

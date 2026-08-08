@@ -72,7 +72,8 @@ export default function Proof() {
       delivery_id: deliveryId,
       signature_base64: signatureDataUrl,
       proof_url: photoDataUrl,
-      notes: failed ? failReason : notes,
+      ...(failed ? { reason: failReason } : {}),
+      notes: failed ? undefined : notes,
     };
     try {
       await apiRequest(`/api/courier/deliveries/${deliveryId}/${failed ? 'fail' : 'complete'}`, {
@@ -97,11 +98,11 @@ export default function Proof() {
     <AppShell title="Bukti Pengiriman" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
         <Card>
-          <p className="mb-2 text-xs font-semibold text-umber-400">Foto Barang / Bukti</p>
+          <p className="mb-2 text-xs font-semibold text-ink-muted">Foto Barang / Bukti</p>
           {photoDataUrl ? (
             <img src={photoDataUrl} alt="Bukti" className="w-full rounded-xl" />
           ) : (
-            <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-umber-700 bg-umber-950/60 text-umber-500">
+            <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-border-default bg-raised text-ink-muted">
               Belum ada foto
             </div>
           )}
@@ -109,15 +110,15 @@ export default function Proof() {
             <Camera className="size-4" /> {photoDataUrl ? 'Ambil Ulang' : 'Ambil Foto'}
           </Button>
           {!isNative && (
-            <p className="mt-2 text-center text-[10px] text-umber-600">
+            <p className="mt-2 text-center text-[10px] text-ink-muted">
               Mode web: foto diambil dari kamera browser bila tersedia.
             </p>
           )}
         </Card>
 
         <Card>
-          <p className="mb-2 text-xs font-semibold text-umber-400">Tanda Tangan Penerima</p>
-          <div className="rounded-xl border border-umber-700 bg-white">
+          <p className="mb-2 text-xs font-semibold text-ink-muted">Tanda Tangan Penerima</p>
+          <div className="rounded-xl border border-border-default bg-white">
             <SignatureCanvas
               ref={sigRef}
               canvasProps={{ width: 600, height: 200, className: 'w-full' }}
@@ -125,10 +126,10 @@ export default function Proof() {
             />
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-[10px] text-umber-600">Tanda tangani di area di atas</span>
+            <span className="text-[10px] text-ink-muted">Tanda tangani di area di atas</span>
             <button
               onClick={() => sigRef.current?.clear()}
-              className="flex h-11 items-center px-2 text-[10px] font-semibold text-umber-500 underline"
+              className="flex h-11 items-center px-2 text-[10px] font-semibold text-ink-muted underline"
             >
               Hapus
             </button>
@@ -137,24 +138,24 @@ export default function Proof() {
 
         {!showFail ? (
           <Card>
-            <p className="mb-2 text-xs font-semibold text-umber-400">Catatan</p>
+            <p className="mb-2 text-xs font-semibold text-ink-muted">Catatan</p>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Catatan tambahan (opsional)..."
               rows={2}
-              className="w-full rounded-xl border border-umber-700 bg-umber-950 p-3 text-sm text-umber-100 placeholder:text-umber-600 focus:border-amber-600 focus:outline-none"
+              className="w-full rounded-xl border border-border-default bg-surface p-3 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none"
             />
           </Card>
         ) : (
           <Card>
-            <p className="mb-2 text-xs font-semibold text-umber-400">Alasan Gagal</p>
+            <p className="mb-2 text-xs font-semibold text-ink-muted">Alasan Gagal</p>
             <textarea
               value={failReason}
               onChange={(e) => setFailReason(e.target.value)}
               placeholder="Jelaskan alasan pengiriman gagal..."
               rows={3}
-              className="w-full rounded-xl border border-red-700 bg-umber-950 p-3 text-sm text-umber-100 placeholder:text-umber-600 focus:border-red-600 focus:outline-none"
+              className="w-full rounded-xl border border-border-default bg-surface p-3 text-sm text-ink placeholder:text-ink-muted focus:border-alert focus:outline-none"
             />
           </Card>
         )}
