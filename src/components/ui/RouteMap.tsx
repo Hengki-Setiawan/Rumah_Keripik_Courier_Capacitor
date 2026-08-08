@@ -23,6 +23,7 @@ interface RouteMapProps {
   activeStopIndex?: number;
   onStopMarkerPress?: (deliveryId: string) => void;
   userLocation?: { lat: number; lng: number } | null;
+  snappedLocation?: { lat: number; lng: number } | null;
   userBearing?: number | null;
   offRoute?: boolean;
   offRouteDeviationM?: number | null;
@@ -135,6 +136,7 @@ export function RouteMap({
   activeStopIndex,
   onStopMarkerPress,
   userLocation,
+  snappedLocation,
   userBearing,
   offRoute,
   offRouteDeviationM,
@@ -228,7 +230,11 @@ export function RouteMap({
         ))}
 
         {userLocation && (
-          <Marker longitude={userLocation.lng} latitude={userLocation.lat} anchor="center">
+          <Marker
+            longitude={(snappedLocation ?? userLocation).lng}
+            latitude={(snappedLocation ?? userLocation).lat}
+            anchor="center"
+          >
             <CourierMarkerIcon bearing={userBearing} offRoute={offRoute} />
           </Marker>
         )}

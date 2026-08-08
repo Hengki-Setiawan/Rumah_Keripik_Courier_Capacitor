@@ -12,10 +12,34 @@ export interface RouteWaypoint {
   address?: string;
 }
 
+export type ManeuverModifier =
+  | 'depart'
+  | 'straight'
+  | 'slight left'
+  | 'left'
+  | 'sharp left'
+  | 'slight right'
+  | 'right'
+  | 'sharp right'
+  | 'uturn'
+  | 'roundabout'
+  | 'arrive';
+
+export interface RouteStep {
+  index: number;
+  instruction: string;
+  modifier: ManeuverModifier;
+  roadName: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  location: LatLng;
+}
+
 export interface RouteLegGeometry {
   coordinates: [number, number][];
   distanceMeters: number;
   durationSeconds: number;
+  steps?: RouteStep[];
 }
 
 export type RouteSource =

@@ -1,6 +1,7 @@
 import { Navigation, MapPin } from 'lucide-react';
 import type { OptimizedRoute } from '@/lib/routing/types';
 import { haversineMeters } from '@/lib/routing/distance';
+import { remainingDistanceToEndM } from '@/lib/routing/navigation';
 import { cn } from '@/lib/cn';
 
 function openNavigation(lat: number, lng: number) {
@@ -25,23 +26,23 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
   const stop = route?.orderedStops[activeStopIndex];
   if (!stop) return null;
 
-  let distanceM = 0;
+  let distanceM: number | null = null;
   let etaMin = 0;
-  let walking = false;
 
   const leg = route?.legs[activeStopIndex];
   if (leg && leg.distanceMeters > 0) {
-    distanceM = leg.distanceMeters;
-    etaMin = Math.round(leg.durationSeconds / 60);
-  } else {
+    const remaining = courierLocation ? remainingDistanceToEndM(leg, courierLocation) : null;
+    distanceM = remaining ?? leg.distanceMeters;
+    const fraction = remaining != null && leg.distanceMeters > 0 ? remaining / leg.distanceMeters : 1;
+    etaMin = leg.durationSeconds > 0 ? Math.max(1, Math.round((leg.durationSeconds * fraction) / 60)) : 0;
+  }
+  if (distanceM == null || distanceM <= 0) {
     // Fallback perkiraan: haversine dari posisi kurir (atau gudang) ke stop.
     const from = courierLocation ?? { lat: -5.134, lng: 119.4135 };
     distanceM = haversineMeters(from, stop);
     // Asumsi kecepatan kurir motor di kota ~20 km/jam untuk perkiraan kasar.
     etaMin = Math.max(1, Math.round((distanceM / 1000 / 20) * 60));
   }
-
-  if (distanceM < 400) walking = true;
 
   return (
     <div
@@ -57,7 +58,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
         <p className="truncate text-xs font-medium text-ink-secondary">Menuju stop #{activeStopIndex + 1}</p>
         <p className="truncate text-sm font-semibold text-ink">{stop.customerName ?? 'Pelanggan'}</p>
         <p className="text-xs text-ink-secondary">
-          {walking ? (
+          {distanceM < 400 ? (
             <span className="text-ok">Kurang dari 400 m - segera tiba</span>
           ) : (
             <span>

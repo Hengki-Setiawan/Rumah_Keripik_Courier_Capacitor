@@ -6,12 +6,18 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
-    // Whitelist domain eksternal (blueprint §8): tile peta OpenFreeMap + routing ORS/OSRM.
+    // Whitelist domain eksternal (blueprint §8): tile peta Carto basemaps + routing ORS/OSRM.
     allowNavigation: [
-      'tiles.openfreemap.org',
+      'basemaps.cartocdn.com',
+      'tiles.basemaps.cartocdn.com',
+      'tiles-a.basemaps.cartocdn.com',
+      'tiles-b.basemaps.cartocdn.com',
+      'tiles-c.basemaps.cartocdn.com',
+      'tiles-d.basemaps.cartocdn.com',
       'api.openrouteservice.org',
       'router.project-osrm.org',
       'routing.openstreetmap.de',
+      'valhalla1.openstreetmap.de',
     ],
   },
   android: {

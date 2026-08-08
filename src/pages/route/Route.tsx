@@ -1,13 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Bell, Crosshair, LocateFixed } from 'lucide-react';
 import { RouteMap } from '@/components/ui/RouteMap';
 import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
 import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
+import { TurnByTurnHud } from '@/components/ui/TurnByTurnHud';
 import { FAB } from '@/components/ui/FAB';
 import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
+import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
+import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
+import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
+import { haversineMeters } from '@/lib/routing/distance';
+import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
 import type { SnapPoint } from '@/components/ui/BottomSheet';
 
@@ -21,12 +28,14 @@ function openNavigation(lat: number, lng: number) {
 
 export default function Route() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: route, isLoading, refetch, isFetching } = useOptimizedRoute();
   const rawLocation = useUserLocation();
-  const tracking = useCourierTracking(rawLocation, route ?? null);
   const [snap, setSnap] = useState<SnapPoint>('peek');
   const [activeStopIndex, setActiveStopIndex] = useState(0);
   const [mapBump, setMapBump] = useState(0);
+  const tracking = useCourierTracking(rawLocation, route ?? null);
+  const snappedLocation = useRoadMatchedLocation(rawLocation, route ?? null, activeStopIndex, tracking.offRoute);
 
   const activeStop = route?.orderedStops[activeStopIndex];
   const activeLat = activeStop?.lat;
@@ -47,6 +56,63 @@ export default function Route() {
     }
   }, [tracking.offRoute]);
 
+  // Auto re-route (B): saat keluar rute, hitung ulang rute menuju stop aktif
+  // dari posisi kurir (sekali per episode, min 60 detik antar rute ulang).
+  const rerouteArmedRef = useRef(true);
+  const rerouteInFlightRef = useRef(false);
+  const lastRerouteAtRef = useRef(0);
+
+  const rerouteToStop = useCallback(
+    async (r: OptimizedRoute, idx: number) => {
+      const stop = r.orderedStops[idx];
+      if (!stop) return;
+      const from = tracking.position ?? { lat: WAREHOUSE.lat, lng: WAREHOUSE.lng };
+      let leg: RouteLegGeometry;
+      try {
+        const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
+        leg = apiKey ? await fetchDirectionsGeometry(from, stop, apiKey) : await fetchOsrmRoute(from, stop);
+      } catch {
+        leg = {
+          coordinates: [[from.lng, from.lat], [stop.lng, stop.lat]],
+          distanceMeters: haversineMeters(from, stop),
+          durationSeconds: 0,
+        };
+      }
+      const key = ['route', 'optimized', r.orderedStops.map((s) => s.deliveryId).sort().join('|')] as const;
+      queryClient.setQueryData<OptimizedRoute>(key, (old) => {
+        if (!old) return old;
+        const legs = old.legs.map((l, i) => (i === idx ? leg : l));
+        return {
+          ...old,
+          legs,
+          totalDistanceMeters: legs.reduce((sum, l) => sum + l.distanceMeters, 0),
+          totalDurationSeconds: legs.reduce((sum, l) => sum + l.durationSeconds, 0),
+        };
+      });
+      toast.success('Rute dihitung ulang dari posisi Anda');
+    },
+    [queryClient, tracking.position],
+  );
+
+  useEffect(() => {
+    if (!tracking.offRoute) {
+      rerouteArmedRef.current = true;
+      return;
+    }
+    if (!rerouteArmedRef.current || rerouteInFlightRef.current) return;
+    const r = route;
+    const stop = r?.orderedStops[activeStopIndex];
+    if (!r || !stop) return;
+    if (!navigator.onLine) return;
+    if (Date.now() - lastRerouteAtRef.current < 60_000) return;
+    rerouteArmedRef.current = false;
+    lastRerouteAtRef.current = Date.now();
+    rerouteInFlightRef.current = true;
+    void rerouteToStop(r, activeStopIndex).finally(() => {
+      rerouteInFlightRef.current = false;
+    });
+  }, [tracking.offRoute, route, activeStopIndex, rerouteToStop]);
+
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-surface">
       <RouteMap
@@ -55,6 +121,7 @@ export default function Route() {
         activeStopIndex={activeStopIndex}
         onStopMarkerPress={handleStopMarkerPress}
         userLocation={tracking.position}
+        snappedLocation={snappedLocation}
         userBearing={tracking.bearing}
         offRoute={tracking.offRoute}
         offRouteDeviationM={tracking.offRouteDeviationM}
@@ -80,6 +147,11 @@ export default function Route() {
           <Bell className="size-5" />
         </button>
       </div>
+
+      {/* Banner manuver turn-by-turn (sembunyikan saat off-route agar tidak bentrok) */}
+      {!tracking.offRoute && (
+        <TurnByTurnHud leg={route?.legs[activeStopIndex] ?? null} position={tracking.position} />
+      )}
 
       {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps */}
       <LiveNavigationHud

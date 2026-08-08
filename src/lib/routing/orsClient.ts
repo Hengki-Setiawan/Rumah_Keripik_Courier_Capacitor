@@ -1,5 +1,49 @@
 import { decodePolyline } from '../map/polyline';
-import type { LatLng, RouteLegGeometry, RouteWaypoint } from './types';
+import type { LatLng, ManeuverModifier, RouteLegGeometry, RouteStep, RouteWaypoint } from './types';
+
+interface OrsStepJson {
+  distance?: number;
+  duration?: number;
+  type?: number;
+  instruction?: string;
+  name?: string;
+  location?: number[];
+  maneuver?: {
+    location?: number[];
+  };
+}
+
+const ORS_STEP_MODIFIERS: Record<number, ManeuverModifier> = {
+  0: 'left',
+  1: 'right',
+  2: 'sharp left',
+  3: 'sharp right',
+  4: 'slight left',
+  5: 'slight right',
+  6: 'straight',
+  7: 'roundabout',
+  8: 'roundabout',
+  9: 'uturn',
+  10: 'arrive',
+  11: 'depart',
+  12: 'left',
+  13: 'right',
+};
+
+export function parseOrsSteps(steps: OrsStepJson[]): RouteStep[] {
+  return steps.map((step, index) => {
+    const location = step.maneuver?.location ?? step.location;
+    return {
+      index,
+      instruction: step.instruction ?? '',
+      modifier: ORS_STEP_MODIFIERS[step.type ?? 6] ?? 'straight',
+      roadName: step.name && step.name !== '-' ? step.name : '',
+      distanceMeters: step.distance ?? 0,
+      durationSeconds: step.duration ?? 0,
+      location: location && location.length >= 2 ? { lat: location[1], lng: location[0] } : { lat: 0, lng: 0 },
+    };
+  });
+}
 
 export async function fetchDirectionsGeometry(
   from: LatLng,
@@ -12,16 +56,20 @@ export async function fetchDirectionsGeometry(
     headers: { 'Authorization': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       coordinates: [[from.lng, from.lat], [to.lng, to.lat]],
+      instructions: true,
+      maneuvers: true,
     }),
   });
   if (!res.ok) throw new Error(`ORS directions error: ${res.status}`);
   const data = await res.json();
   const route = data.routes[0];
+  const segmentSteps = route.segments?.[0]?.steps;
 
   return {
     coordinates: decodePolyline(route.geometry),
     distanceMeters: route.summary.distance,
     durationSeconds: route.summary.duration,
+    steps: Array.isArray(segmentSteps) ? parseOrsSteps(segmentSteps as OrsStepJson[]) : undefined,
   };
 }
 
