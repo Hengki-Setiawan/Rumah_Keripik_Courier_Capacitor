@@ -1,7 +1,5 @@
 import type { LatLng, ManeuverModifier, RouteLegGeometry, RouteStep } from './types';
 
-const OSRM_DEMO_BASE = 'https://router.project-osrm.org';
-
 interface OsrmStepJson {
   distance?: number;
   duration?: number;
@@ -51,10 +49,26 @@ export function parseOsrmSteps(steps: OsrmStepJson[]): RouteStep[] {
   });
 }
 
+const OSRM_PRIMARY_BASE = 'https://router.project-osrm.org';
+const OSRM_FALLBACK_BASE = 'https://routing.openstreetmap.de/routed-car';
+
 export async function fetchOsrmRoute(from: LatLng, to: LatLng): Promise<RouteLegGeometry> {
-  const url = `${OSRM_DEMO_BASE}/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`OSRM error: ${res.status}`);
+  const path = `/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
+  
+  let res: Response | null = null;
+  try {
+    res = await fetch(`${OSRM_PRIMARY_BASE}${path}`);
+    if (!res.ok) res = null;
+  } catch {
+    res = null;
+  }
+
+  // Fallback ke server OSM DE jika server utama gagal
+  if (!res) {
+    res = await fetch(`${OSRM_FALLBACK_BASE}${path}`);
+    if (!res.ok) throw new Error(`OSRM Fallback error: ${res.status}`);
+  }
+
   const data = await res.json();
   const route = data.routes[0];
   const legSteps = route.legs?.[0]?.steps;

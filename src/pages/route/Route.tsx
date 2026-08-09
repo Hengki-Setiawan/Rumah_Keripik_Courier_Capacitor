@@ -7,6 +7,7 @@ import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
 import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
 import { TurnByTurnHud } from '@/components/ui/TurnByTurnHud';
 import { FAB } from '@/components/ui/FAB';
+import { Button } from '@/components/ui/Button';
 import { openExternalNavigation } from '@/lib/openMaps';
 import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
@@ -14,6 +15,7 @@ import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
 import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
 import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
+import { buildRouteFingerprint } from '@/lib/routing/routingService';
 import { haversineMeters } from '@/lib/routing/distance';
 import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
@@ -26,6 +28,7 @@ export default function Route() {
   const rawLocation = useUserLocation();
   const [snap, setSnap] = useState<SnapPoint>('peek');
   const [activeStopIndex, setActiveStopIndex] = useState(0);
+  const [navigationMode, setNavigationMode] = useState(false);
   const [mapBump, setMapBump] = useState(0);
   const tracking = useCourierTracking(rawLocation, route ?? null);
   const snappedLocation = useRoadMatchedLocation(rawLocation, route ?? null, activeStopIndex, tracking.offRoute);
@@ -38,7 +41,7 @@ export default function Route() {
     const idx = route?.orderedStops.findIndex((s) => s.deliveryId === deliveryId) ?? -1;
     if (idx >= 0) {
       setActiveStopIndex(idx);
-      if (snap === 'peek') setSnap('half');
+      if (!navigationMode && snap === 'peek') setSnap('half');
     }
   }
 
@@ -59,7 +62,9 @@ export default function Route() {
     async (r: OptimizedRoute, idx: number) => {
       const stop = r.orderedStops[idx];
       if (!stop) return;
-      const from = tracking.position ?? { lat: WAREHOUSE.lat, lng: WAREHOUSE.lng };
+      const from = tracking.position;
+      // Jangan jatuh ke gudang: tanpa fix GPS, rute leg 0 tidak bisa dihitung ulang.
+      if (!from) return;
       let leg: RouteLegGeometry;
       try {
         const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
@@ -71,7 +76,7 @@ export default function Route() {
           durationSeconds: 0,
         };
       }
-      const key = ['route', 'optimized', r.orderedStops.map((s) => s.deliveryId).sort().join('|')] as const;
+      const key = ['route', 'optimized', buildRouteFingerprint(r.orderedStops)] as const;
       queryClient.setQueryData<OptimizedRoute>(key, (old) => {
         if (!old) return old;
         const legs = old.legs.map((l, i) => (i === idx ? leg : l));
@@ -105,6 +110,30 @@ export default function Route() {
       rerouteInFlightRef.current = false;
     });
   }, [tracking.offRoute, route, activeStopIndex, rerouteToStop]);
+  // Google Maps style: setelah fix GPS pertama, ganti leg 0 (yang dihitung dari
+  // gudang) dengan rute dari POSISI KURIR saat ini -> stop pertama. Sekali saja.
+  const initialLegReroutedRef = useRef(false);
+  useEffect(() => {
+    if (initialLegReroutedRef.current) return;
+    const r = route;
+    const pos = tracking.position;
+    if (!r || !pos) return;
+    const stop = r.orderedStops[0];
+    if (!stop) return;
+    // Hanya jika courier sudah jauh dari gudang (bukan sedang tes di gudang).
+    if (haversineMeters(pos, { lat: WAREHOUSE.lat, lng: WAREHOUSE.lng }) < 100) return;
+    // Hanya jika leg 0 masih mulai dari gudang (belum pernah di-reroute).
+    const first = r.legs[0]?.coordinates[0];
+    if (!first) return;
+    const legStartsAtWarehouse =
+      Math.abs(first[1] - WAREHOUSE.lat) < 0.0005 && Math.abs(first[0] - WAREHOUSE.lng) < 0.0005;
+    if (!legStartsAtWarehouse) {
+      initialLegReroutedRef.current = true;
+      return;
+    }
+    initialLegReroutedRef.current = true;
+    void rerouteToStop(r, 0);
+  }, [route, tracking.position, rerouteToStop]);
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-surface">
@@ -118,8 +147,9 @@ export default function Route() {
         userBearing={tracking.bearing}
         offRoute={tracking.offRoute}
         offRouteDeviationM={tracking.offRouteDeviationM}
-        followMode={tracking.followMode}
+        followMode={navigationMode ? true : tracking.followMode}
         onFollowModeChange={tracking.setFollowMode}
+        navigationMode={navigationMode}
       />
 
       {/* Header transparan mengambang */}
@@ -141,50 +171,68 @@ export default function Route() {
         </button>
       </div>
 
-      {/* Banner manuver turn-by-turn (sembunyikan saat off-route agar tidak bentrok) */}
-      {!tracking.offRoute && (
+      {/* Banner manuver turn-by-turn â€” hanya muncul saat mode navigasi aktif */}
+      {navigationMode && (!tracking.offRoute || navigationMode) && (
         <TurnByTurnHud leg={route?.legs[activeStopIndex] ?? null} position={tracking.position} />
       )}
 
-      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps */}
-      <LiveNavigationHud
-        route={route ?? null}
-        activeStopIndex={activeStopIndex}
-        courierLocation={tracking.position}
-      />
+      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps â€” disembunyikan saat navigationMode */}
+      {!navigationMode && (
+        <LiveNavigationHud
+          route={route ?? null}
+          activeStopIndex={activeStopIndex}
+          courierLocation={tracking.position}
+        />
+      )}
 
       {/* Navigasi ke stop aktif */}
-      {activeLat != null && activeLng != null && (
+      {activeLat != null && activeLng != null && !navigationMode && (
         <FAB
           icon={<Crosshair className="size-6" />}
           ariaLabel="Navigasi ke titik aktif"
           variant="overlay"
-          className="absolute right-3 z-20 bottom-[190px]"
+          className="absolute right-4 z-40 bottom-[calc(45dvh+5rem)] shadow-card-lg"
           onClick={() => openExternalNavigation(activeLat, activeLng)}
         />
       )}
 
-      {/* Recenter peta ke posisi kurir (aktifkan ulang follow camera) */}
-      {!tracking.followMode && tracking.position && (
+      {/* Recenter peta ke posisi kurir */}
+      {tracking.position && !navigationMode && (
         <FAB
           icon={<LocateFixed className="size-6" />}
           ariaLabel="Kembali ke posisi saya"
           variant="overlay"
-          className="absolute right-3 z-20 bottom-[140px]"
+          className="absolute right-4 z-40 bottom-[calc(45dvh+1rem)] shadow-card-lg"
           onClick={() => tracking.setFollowMode(true)}
         />
       )}
 
-      <RouteBottomSheet
-        route={route ?? null}
-        loading={isLoading}
-        optimizing={isFetching}
-        snap={snap}
-        onSnapChange={setSnap}
-        onOptimize={() => { setMapBump((b) => b + 1); refetch(); }}
-        activeStopIndex={activeStopIndex}
-        onSelectStop={(i) => { setActiveStopIndex(i); if (snap === 'peek') setSnap('half'); }}
-      />
+      {!navigationMode ? (
+        <RouteBottomSheet
+          route={route ?? null}
+          loading={isLoading}
+          optimizing={isFetching}
+          snap={snap}
+          onSnapChange={setSnap}
+          onOptimize={() => { setMapBump((b) => b + 1); refetch(); }}
+          activeStopIndex={activeStopIndex}
+          onSelectStop={(i) => { setActiveStopIndex(i); if (snap === 'peek') setSnap('half'); }}
+          onStartNavigation={() => {
+            setNavigationMode(true);
+            tracking.setFollowMode(true);
+          }}
+        />
+      ) : (
+        <div className="absolute inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1rem)] z-40">
+          <Button 
+            variant="primary" 
+            className="w-full shadow-card-lg bg-error text-white font-bold h-14 rounded-2xl" 
+            onClick={() => setNavigationMode(false)}
+          >
+            Akhiri Navigasi
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,25 +7,77 @@ import { WAREHOUSE, type RouteWaypoint, type OptimizedRoute, type RouteLegGeomet
 
 const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY as string | undefined;
 
+const isDev = import.meta.env.DEV;
+function debugLog(...args: unknown[]): void {
+  if (isDev) console.log('[routingService]', ...args);
+}
+
+/**
+ * Cek koneksi nyata — navigator.onLine tidak reliable di Capacitor Android
+ * tanpa ACCESS_NETWORK_STATE permission. Probe ORS dulu (kita punya API key dan
+ * itu engine routing utama); fallback probe OSRM public yang kadang rate-limit.
+ * Sebelumnya probe OSRM saja -> sering gagal dari Indonesia -> app menganggap
+ * offline -> semua leg jadi garis lurus padahal online (akar bug #4).
+ */
+async function isNetworkReachable(): Promise<boolean> {
+  const probe = async (url: string) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);
+    try {
+      const res = await fetch(url, { method: 'GET', signal: ctrl.signal });
+      return res.ok;
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  // 1) Probe ORS (primary engine) — endpoint directions minimal, ringan.
+  if (ORS_API_KEY) {
+    const orsOk = await probe(
+      `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_API_KEY}&start=119.4135,-5.134&end=119.42,-5.14&geometry=false&instructions=false`,
+    );
+    if (orsOk) return true;
+  }
+
+  // 2) Fallback probe OSRM public.
+  return probe('https://router.project-osrm.org/route/v1/driving/119.4135,-5.134;119.42,-5.14?overview=false');
+}
+
 function toLatLng(w: RouteWaypoint): { lat: number; lng: number } {
   return { lat: w.lat, lng: w.lng };
 }
 
-async function fetchLegsSequentially(orderedStops: RouteWaypoint[]): Promise<RouteLegGeometry[]> {
+async function fetchLegsConcurrently(orderedStops: RouteWaypoint[]): Promise<RouteLegGeometry[]> {
   const points = [WAREHOUSE, ...orderedStops.map(toLatLng)];
-  const legs: RouteLegGeometry[] = [];
+  const legPairs: Array<[typeof points[number], typeof points[number]]> = [];
   for (let i = 0; i < points.length - 1; i++) {
-    try {
-      if (ORS_API_KEY) {
-        legs.push(await fetchDirectionsGeometry(points[i], points[i + 1], ORS_API_KEY));
-      } else {
-        legs.push(await fetchOsrmRoute(points[i], points[i + 1]));
-      }
-    } catch {
-      legs.push(straightLineLeg(points[i], points[i + 1]));
-    }
+    legPairs.push([points[i], points[i + 1]]);
   }
-  return legs;
+  // Concurrency 5: menghindari burst 14+ request ORS sekaligus yang bisa kena rate-limit,
+  // tapi tetap jauh lebih cepat dari berurutan (N request berurutan).
+  return mapWithConcurrency(legPairs, 5, async ([from, to]) => {
+    try {
+      return ORS_API_KEY ? await fetchDirectionsGeometry(from, to, ORS_API_KEY) : await fetchOsrmRoute(from, to);
+    } catch {
+      return straightLineLeg(from, to);
+    }
+  });
+}
+
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    for (;;) {
+      const idx = cursor++;
+      if (idx >= items.length) return;
+      results[idx] = await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+  return results;
 }
 
 function straightLineLeg(a: { lat: number; lng: number }, b: { lat: number; lng: number }): RouteLegGeometry {
@@ -45,8 +97,15 @@ function straightLineLegs(orderedStops: RouteWaypoint[]): RouteLegGeometry[] {
   return legs;
 }
 
+export function buildRouteFingerprint(stops: RouteWaypoint[]): string {
+  return stops
+    .map((s) => `${s.deliveryId}:${s.lat.toFixed(6)},${s.lng.toFixed(6)}`)
+    .sort()
+    .join('|');
+}
+
 function buildCacheKey(stops: RouteWaypoint[]): string {
-  return stops.map((s) => s.deliveryId).sort().join('|');
+  return buildRouteFingerprint(stops);
 }
 
 /**
@@ -84,17 +143,22 @@ export async function buildOptimizedRoute(
 
   const cacheKey = buildCacheKey(stops);
   const cached = await getCachedRoute(cacheKey);
-  if (cached && !navigator.onLine) return cached;
+
+  // Probe jaringan secara nyata (bukan hanya navigator.onLine)
+  const online = !opts.forceOffline && await isNetworkReachable();
+  debugLog('isNetworkReachable:', online);
+
+  if (cached && !online) return cached;
 
   // 1) Jalur terbaik: ORS optimization (online + API key)
-  if (!opts.forceOffline && navigator.onLine && ORS_API_KEY) {
+  if (!opts.forceOffline && online && ORS_API_KEY) {
     try {
       const optimized = await optimizeWithOrs(WAREHOUSE, stops, ORS_API_KEY);
       const orderedStops = optimized.orderedDeliveryIds
         .map((id) => stops.find((s) => s.deliveryId === id))
         .filter((s): s is RouteWaypoint => !!s);
 
-      const legs = await fetchLegsSequentially(orderedStops);
+      const legs = await fetchLegsConcurrently(orderedStops);
       const result: OptimizedRoute = {
         orderedStops,
         legs,
@@ -115,7 +179,7 @@ export async function buildOptimizedRoute(
 
   // 2b) Upgrade: perbaiki urutan dengan matriks jarak jalan asli (ORS Matrix) saat online
   let usedRoadMatrix = false;
-  if (navigator.onLine && ORS_API_KEY) {
+  if (online && ORS_API_KEY) {
     const improved = await improveOrderWithRoadMatrix(orderedStops, ORS_API_KEY);
     if (improved) {
       orderedStops = improved;
@@ -127,13 +191,17 @@ export async function buildOptimizedRoute(
   let legs: RouteLegGeometry[];
   let source: OptimizedRoute['source'] = 'straight-line-fallback';
   try {
-    if (navigator.onLine) {
-      legs = await fetchLegsSequentially(orderedStops);
+    if (online) {
+      debugLog('Fetching OSRM legs for', orderedStops.length, 'stops');
+      legs = await fetchLegsConcurrently(orderedStops);
       source = usedRoadMatrix ? 'ors-directions' : 'local-heuristic';
+      debugLog('OSRM legs fetched, total coords:', legs.reduce((n, l) => n + l.coordinates.length, 0));
     } else {
+      debugLog('Offline - using straight-line legs');
       legs = straightLineLegs(orderedStops);
     }
-  } catch {
+  } catch (e) {
+    console.error('[routingService] fetchLegsConcurrently error:', e);
     legs = straightLineLegs(orderedStops);
   }
 

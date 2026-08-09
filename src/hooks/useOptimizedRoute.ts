@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { buildOptimizedRoute } from '@/lib/routing/routingService';
+import { buildOptimizedRoute, buildRouteFingerprint } from '@/lib/routing/routingService';
 import type { RouteWaypoint, OptimizedRoute } from '@/lib/routing/types';
 import { useTodayDeliveries } from '@/hooks/use-deliveries';
 
@@ -18,7 +18,7 @@ export function useOptimizedRoute() {
     }));
 
   return useQuery<OptimizedRoute>({
-    queryKey: ['route', 'optimized', stops.map((s) => s.deliveryId).sort().join('|')],
+    queryKey: ['route', 'optimized', buildRouteFingerprint(stops)],
     queryFn: () => buildOptimizedRoute(stops),
     enabled: deliveriesLoaded && stops.length > 0,
     staleTime: 5 * 60_000,

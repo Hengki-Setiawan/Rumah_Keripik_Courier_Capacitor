@@ -6,7 +6,7 @@ import { MAP_STYLE_LIGHT } from '@/lib/map/tileStyle';
 import { WAREHOUSE } from '@/lib/routing/types';
 import { globalTokens } from '@/tokens/global';
 import { openExternalNavigation } from '@/lib/openMaps';
-import type { OptimizedRoute } from '@/lib/routing/types';
+import type { OptimizedRoute, RouteWaypoint } from '@/lib/routing/types';
 import { cn } from '@/lib/cn';
 
 function supportsWebGL(): boolean {
@@ -30,6 +30,50 @@ interface RouteMapProps {
   offRouteDeviationM?: number | null;
   followMode?: boolean;
   onFollowModeChange?: (on: boolean) => void;
+  navigationMode?: boolean;
+}
+
+/** Posisi marker setelah spread (jika koordinat berdekatan) — memakai tipe waypoint. */
+type SpreadStop = {
+  deliveryId: string;
+  sequence: number;
+  lat: number;
+  lng: number;
+  customerName?: string;
+  address?: string;
+};
+
+/**
+ * Beri jarak (spiderfy) antar marker yang koordinatnya berdekatan (< ~40 m)
+ * agar tidak saling menumpuk di peta. Urutan dikembalikan sesuai sequence.
+ */
+function spreadStops(stops: RouteWaypoint[]): SpreadStop[] {
+  const groups: Array<{ origin: SpreadStop; members: SpreadStop[] }> = [];
+
+  for (const s of stops) {
+    const wp: SpreadStop = { deliveryId: s.deliveryId, sequence: s.sequence, lat: Number(s.lat), lng: Number(s.lng), customerName: s.customerName, address: s.address };
+    const hit = groups.find((g) => Math.hypot(g.origin.lat - wp.lat, g.origin.lng - wp.lng) < 0.0004);
+    if (hit) {
+      hit.members.push(wp);
+    } else {
+      groups.push({ origin: wp, members: [wp] });
+    }
+  }
+
+  const out: SpreadStop[] = [];
+  for (const g of groups) {
+    const n = g.members.length;
+    if (n === 1) {
+      out.push(g.origin);
+      continue;
+    }
+    const radius = 0.00015 + (n - 1) * 0.0001;
+    g.members.forEach((m, k) => {
+      const ang = (Math.PI * 2 * k) / n - Math.PI / 2;
+      out.push({ ...m, lat: g.origin.lat + Math.cos(ang) * radius, lng: g.origin.lng + Math.sin(ang) * radius });
+    });
+  }
+  return out.sort((a, b) => a.sequence - b.sequence);
 }
 
 function StopMarkerIcon({ number, active }: { number: number; active?: boolean }) {
@@ -45,19 +89,6 @@ function StopMarkerIcon({ number, active }: { number: number; active?: boolean }
         {number}
       </div>
       <span className="mt-0.5 h-2 w-0.5 rounded-b bg-ink-muted/70" />
-    </div>
-  );
-}
-
-function WarehouseMarkerIcon() {
-  return (
-    <div className="flex flex-col items-center">
-      <div className="relative flex size-9 items-center justify-center rounded-xl bg-ink text-white shadow-card ring-2 ring-white">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6" />
-        </svg>
-      </div>
-      <span className="mt-0.5 h-2 w-0.5 rounded-b bg-ink" />
     </div>
   );
 }
@@ -86,7 +117,7 @@ function CourierMarkerIcon({ bearing, offRoute }: { bearing?: number | null; off
   );
 }
 
-/** Fallback saat WebGL tidak tersedia (device low-end, D-016) — peta tidak bisa dirender. */
+/** Fallback saat WebGL tidak tersedia (device low-end, D-016) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â peta tidak bisa dirender. */
 function WebGlFallback({ route }: { route: OptimizedRoute | null }) {
   const stops = route?.orderedStops ?? [];
   return (
@@ -136,6 +167,7 @@ export function RouteMap({
   offRouteDeviationM,
   followMode = true,
   onFollowModeChange,
+  navigationMode = false,
 }: RouteMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const webglSupported = useMemo(() => supportsWebGL(), []);
@@ -146,7 +178,6 @@ export function RouteMap({
     const map = mapRef.current?.getMap();
     if (!map || !route || route.orderedStops.length === 0) return;
     const coords: [number, number][] = route.orderedStops.map((s) => [s.lng, s.lat] as [number, number]);
-    coords.push([WAREHOUSE.lng, WAREHOUSE.lat]);
     const lons = coords.map((c) => c[0]);
     const lats = coords.map((c) => c[1]);
     map.fitBounds(
@@ -159,21 +190,46 @@ export function RouteMap({
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map || !userLocation || !followMode) return;
-    map.easeTo({ center: [userLocation.lng, userLocation.lat], duration: 300 });
-  }, [userLocation, followMode]);
+    map.easeTo({ 
+      center: [userLocation.lng, userLocation.lat], 
+      zoom: navigationMode ? 18 : Math.max(map.getZoom(), 14),
+      pitch: navigationMode ? 60 : 0,
+      duration: 300 
+    });
+  }, [userLocation, followMode, navigationMode]);
 
   const geojsonLine = useMemo(() => {
-    if (!route || route.legs.length === 0) return null;
+    // Rute/trek hanya digambar saat mode navigasi aktif — tidak sebelum kurir mulai.
+    if (!navigationMode) return null;
+    if (!route || route.legs.length === 0) {
+      if (!userLocation || !route?.orderedStops[0]) return null;
+      // Fallback straight line if no route legs
+      return {
+        type: 'FeatureCollection' as const,
+        features: [
+          {
+            type: 'Feature' as const,
+            geometry: { type: 'LineString' as const, coordinates: [[userLocation.lng, userLocation.lat], [route.orderedStops[0].lng, route.orderedStops[0].lat]] },
+            properties: {},
+          }
+        ]
+      };
+    }
+
     const features = route.legs
-      .filter((leg) => leg.coordinates.length >= 2)
+      .filter((leg) => leg.coordinates && leg.coordinates.length >= 2)
       .map((leg) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: leg.coordinates },
         properties: {},
       }));
-    if (features.length === 0) return null;
+
+    if (features.length === 0) {
+      return null;
+    }
+
     return { type: 'FeatureCollection' as const, features };
-  }, [route]);
+  }, [route, userLocation, navigationMode]);
 
   if (!webglSupported) return <WebGlFallback route={route} />;
 
@@ -195,23 +251,27 @@ export function RouteMap({
             <Layer
               id="route-line-outline"
               type="line"
-              paint={{ 'line-color': globalTokens.white, 'line-width': 8, 'line-opacity': 0.9 }}
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{
+                'line-color': globalTokens.white,
+                'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 8, 18, 13],
+                'line-opacity': 0.9,
+              }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' }}
             />
             <Layer
               id="route-line-main"
               type="line"
-              paint={{ 'line-color': globalTokens.amber[500], 'line-width': 5 }}
-              layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+              paint={{
+                'line-color': globalTokens.amber[500],
+                'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 5, 18, 9],
+              }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' }}
             />
           </Source>
         )}
 
-        <Marker longitude={WAREHOUSE.lng} latitude={WAREHOUSE.lat} anchor="bottom">
-          <WarehouseMarkerIcon />
-        </Marker>
 
-        {route?.orderedStops.map((stop, idx) => (
+        {route && spreadStops(route.orderedStops).map((stop, idx) => (
           <Marker
             key={stop.deliveryId}
             longitude={stop.lng}

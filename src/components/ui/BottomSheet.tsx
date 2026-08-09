@@ -3,10 +3,10 @@ import { cn } from '@/lib/cn';
 
 export type SnapPoint = 'peek' | 'half' | 'full';
 
-const SNAP: Record<SnapPoint, string> = {
-  peek: 'translate-y-[68%]',
-  half: 'translate-y-[34%]',
-  full: 'translate-y-0',
+const SNAP_PERCENT: Record<SnapPoint, number> = {
+  peek: 75,
+  half: 40,
+  full: 0,
 };
 
 interface BottomSheetProps {
@@ -54,10 +54,9 @@ export function BottomSheet({ snap, onSnapChange, children, className }: BottomS
     <div
       className={cn(
         'absolute inset-x-0 bottom-0 z-30 flex flex-col rounded-t-[28px] bg-surface shadow-sheet transition-transform duration-300 ease-out border-t border-border-subtle',
-        dragY == null && SNAP[snap],
         className,
       )}
-      style={dragY != null ? { transform: `translateY(${dragY}px)` } : undefined}
+      style={{ transform: dragY != null ? `translateY(${dragY}px)` : `translateY(${SNAP_PERCENT[snap]}%)` }}
     >
       <div
         className="flex shrink-0 cursor-grab touch-none flex-col items-center py-2.5"
@@ -68,7 +67,7 @@ export function BottomSheet({ snap, onSnapChange, children, className }: BottomS
       >
         <div className="h-1 w-10 rounded-full bg-ink-muted/30" />
       </div>
-      <div className="max-h-[52dvh] overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="max-h-[45dvh] overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {children}
       </div>
     </div>

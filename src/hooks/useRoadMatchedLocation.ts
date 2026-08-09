@@ -2,12 +2,20 @@ import { useEffect, useRef, useState } from 'react';
 import type { TrackedLocation } from '@/lib/location';
 import type { OptimizedRoute } from '@/lib/routing/types';
 import { snapToRoute } from '@/lib/routing/navigation';
+import { haversineMeters } from '@/lib/routing/distance';
 import { interpolateLatLng } from '@/lib/routing/tracking';
 import { matchShapeToRoad } from '@/lib/routing/valhallaClient';
 
 const TWEEN_MS = 450;
 const MAX_BUFFER = 8;
 const MATCH_COOLDOWN_MS = 10_000;
+// Snap ke jalan hanya untuk leg nyata (polyline dengan banyak vertex dari ORS/OSRM).
+// Leg fallback garis lurus hanya punya 2 titik -> menarik marker ke garis imajiner
+// yang bukan jalan = penyebab "GPS tidak akurat" di peta.
+const MIN_REAL_LEG_VERTICES = 3;
+// Batas jarak snap: jika GPS error besar (akurasi buruk), jangan paksa marker
+// menempel jauh dari posisi asli ke jalan. Mirip perilaku map-matching Google Maps.
+const MAX_SNAP_DIST_M = 60;
 
 interface Tween {
   from: TrackedLocation;
@@ -51,16 +59,22 @@ export function useRoadMatchedLocation(
     if (!raw) return;
     const shape = shapeRef.current;
     const leg = route?.legs[legIndex];
+    // Leg jalan nyata hanya jika punya cukup vertex. Leg fallback garis lurus
+    // (2 titik) tidak boleh dipakai untuk snap marker — itu menarik marker ke
+    // garis imajiner yang bukan jalan (akar "GPS tidak akurat").
+    const legIsRealRoad = leg != null && leg.coordinates.length >= MIN_REAL_LEG_VERTICES;
     const line: [number, number][] | null =
       shape && shape.length >= 2
         ? shape.map((p) => [p.lng, p.lat] as [number, number])
-        : leg && leg.coordinates.length >= 2
+        : legIsRealRoad
           ? leg.coordinates
           : null;
     if (!line) return;
 
     const snapped = snapToRoute({ lat: raw.lat, lng: raw.lng }, line);
     if (!snapped) return;
+    // Jangan paksa marker menempel jauh dari fix GPS saat akurasi buruk.
+    if (haversineMeters(raw, snapped.point) > MAX_SNAP_DIST_M) return;
 
     const target: TrackedLocation = {
       lat: snapped.point.lat,

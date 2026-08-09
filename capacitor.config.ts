@@ -9,11 +9,16 @@ const config: CapacitorConfig = {
     // Whitelist domain eksternal (blueprint §8): tile peta Carto basemaps + routing ORS/OSRM.
     allowNavigation: [
       'basemaps.cartocdn.com',
+      '*.basemaps.cartocdn.com',
       'tiles.basemaps.cartocdn.com',
       'tiles-a.basemaps.cartocdn.com',
       'tiles-b.basemaps.cartocdn.com',
       'tiles-c.basemaps.cartocdn.com',
       'tiles-d.basemaps.cartocdn.com',
+      'cartodb-basemaps-a.global.ssl.fastly.net',
+      'cartodb-basemaps-b.global.ssl.fastly.net',
+      'cartodb-basemaps-c.global.ssl.fastly.net',
+      'cartodb-basemaps-d.global.ssl.fastly.net',
       'api.openrouteservice.org',
       'router.project-osrm.org',
       'routing.openstreetmap.de',
@@ -24,6 +29,12 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
   },
   plugins: {
+    // FIX MAP BUG: CapacitorHttp enabled agar request tile peta (CartoCDN/MapLibre)
+    // dirouting melalui native HTTP layer Android, bukan WebView yang sering
+    // memblokir cross-origin request secara diam-diam dari origin https://localhost.
+    CapacitorHttp: {
+      enabled: true,
+    },
     SplashScreen: {
       launchShowDuration: 1000,
       backgroundColor: '#faf7f4',

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { BottomSheet, type SnapPoint } from '@/components/ui/BottomSheet';
 import type { OptimizedRoute } from '@/lib/routing/types';
+// openExternalNavigation removed for in-app navigation
 
 interface RouteBottomSheetProps {
   route: OptimizedRoute | null;
@@ -13,6 +14,7 @@ interface RouteBottomSheetProps {
   onOptimize: () => void;
   activeStopIndex: number;
   onSelectStop: (i: number) => void;
+  onStartNavigation?: (i: number) => void;
 }
 
 export function RouteBottomSheet({
@@ -24,6 +26,7 @@ export function RouteBottomSheet({
   onOptimize,
   activeStopIndex,
   onSelectStop,
+  onStartNavigation,
 }: RouteBottomSheetProps) {
   const stops = route?.orderedStops ?? [];
 
@@ -73,6 +76,19 @@ export function RouteBottomSheet({
                       </p>
                     )}
                   </div>
+                  {i === activeStopIndex && s.lat != null && s.lng != null && (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onStartNavigation?.(i);
+                      }}
+                      className="shrink-0 gap-1.5 font-bold shadow-card"
+                    >
+                      <Navigation className="size-3.5" />
+                      Navigasi
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}

@@ -24,6 +24,26 @@ allprojects {
     }
 }
 
+// Workaround: capgo-capacitor-updater tidak kompatibel dengan Gradle 8.11.1 + AGP 8.7.2.
+// Error "Type T not present" di DefaultReportContainer saat Gradle mencoba membuat
+// testDebugUnitTest task. Solusi: disable test task di subproject capgo saat configure phase.
+subprojects { subproject ->
+    if (subproject.name.contains('capgo')) {
+        subproject.configurations.all {
+            resolutionStrategy {
+                // force konsistensi agar tidak ada versi bentrok
+            }
+        }
+        subproject.afterEvaluate {
+            subproject.tasks.configureEach { task ->
+                if (task.name.contains('test') || task.name.contains('Test')) {
+                    task.enabled = false
+                }
+            }
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
