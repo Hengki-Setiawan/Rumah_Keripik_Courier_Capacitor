@@ -31,6 +31,7 @@ interface RouteMapProps {
   followMode?: boolean;
   onFollowModeChange?: (on: boolean) => void;
   navigationMode?: boolean;
+  showAllRoutes?: boolean;
 }
 
 /** Posisi marker setelah spread (jika koordinat berdekatan) — memakai tipe waypoint. */
@@ -158,7 +159,7 @@ function WebGlFallback({ route }: { route: OptimizedRoute | null }) {
 
 export function RouteMap({
   route,
-  activeStopIndex,
+  activeStopIndex = 0,
   onStopMarkerPress,
   userLocation,
   snappedLocation,
@@ -168,6 +169,7 @@ export function RouteMap({
   followMode = true,
   onFollowModeChange,
   navigationMode = false,
+  showAllRoutes = false,
 }: RouteMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const webglSupported = useMemo(() => supportsWebGL(), []);
@@ -199,23 +201,42 @@ export function RouteMap({
   }, [userLocation, followMode, navigationMode]);
 
   const geojsonLine = useMemo(() => {
-    // Rute/trek hanya digambar saat mode navigasi aktif — tidak sebelum kurir mulai.
-    if (!navigationMode) return null;
-    if (!route || route.legs.length === 0) {
-      if (!userLocation || !route?.orderedStops[0]) return null;
-      // Fallback straight line if no route legs
+    // Saat navigasi: hanya rute dari posisi kurir menuju stop AKTIF.
+    // (leg aktif di-overwrite oleh rerouteToStop agar mulai dari posisi kurir).
+    if (navigationMode) {
+      const stop = route?.orderedStops[activeStopIndex];
+      if (!route || !stop) return null;
+
+      const leg = route.legs[activeStopIndex];
+      if (leg && leg.coordinates.length >= 2) {
+        return {
+          type: 'FeatureCollection' as const,
+          features: [
+            {
+              type: 'Feature' as const,
+              geometry: { type: 'LineString' as const, coordinates: leg.coordinates },
+              properties: {},
+            },
+          ],
+        };
+      }
+
+      // Fallback garis lurus dari posisi kurir menuju stop aktif.
+      if (!userLocation) return null;
       return {
         type: 'FeatureCollection' as const,
         features: [
           {
             type: 'Feature' as const,
-            geometry: { type: 'LineString' as const, coordinates: [[userLocation.lng, userLocation.lat], [route.orderedStops[0].lng, route.orderedStops[0].lat]] },
+            geometry: { type: 'LineString' as const, coordinates: [[userLocation.lng, userLocation.lat], [stop.lng, stop.lat]] },
             properties: {},
-          }
-        ]
+          },
+        ],
       };
     }
 
+    // Bukan navigasi: seluruh rute hanya tampil jika tombol "Lihat Semua Rute" aktif.
+    if (!showAllRoutes || !route) return null;
     const features = route.legs
       .filter((leg) => leg.coordinates && leg.coordinates.length >= 2)
       .map((leg) => ({
@@ -223,13 +244,9 @@ export function RouteMap({
         geometry: { type: 'LineString' as const, coordinates: leg.coordinates },
         properties: {},
       }));
-
-    if (features.length === 0) {
-      return null;
-    }
-
+    if (features.length === 0) return null;
     return { type: 'FeatureCollection' as const, features };
-  }, [route, userLocation, navigationMode]);
+  }, [route, userLocation, navigationMode, activeStopIndex, showAllRoutes]);
 
   if (!webglSupported) return <WebGlFallback route={route} />;
 

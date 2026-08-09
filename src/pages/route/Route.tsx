@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Bell, Crosshair, LocateFixed } from 'lucide-react';
+import { ArrowLeft, Bell, Crosshair, LocateFixed, Route as RouteIcon } from 'lucide-react';
 import { RouteMap } from '@/components/ui/RouteMap';
 import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
 import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
@@ -29,6 +29,7 @@ export default function Route() {
   const [snap, setSnap] = useState<SnapPoint>('peek');
   const [activeStopIndex, setActiveStopIndex] = useState(0);
   const [navigationMode, setNavigationMode] = useState(false);
+  const [showAllRoutes, setShowAllRoutes] = useState(false);
   const [mapBump, setMapBump] = useState(0);
   const tracking = useCourierTracking(rawLocation, route ?? null);
   const snappedLocation = useRoadMatchedLocation(rawLocation, route ?? null, activeStopIndex, tracking.offRoute);
@@ -42,6 +43,9 @@ export default function Route() {
     if (idx >= 0) {
       setActiveStopIndex(idx);
       if (!navigationMode && snap === 'peek') setSnap('half');
+      // Saat sedang navigasi: hitung ulang rute dari POSISI KURIR ke stop baru,
+      // bukan memakai segmen tur lama (mis. stop1→stop2) antar-titik.
+      if (navigationMode && route) void rerouteToStop(route, idx);
     }
   }
 
@@ -150,6 +154,7 @@ export default function Route() {
         followMode={navigationMode ? true : tracking.followMode}
         onFollowModeChange={tracking.setFollowMode}
         navigationMode={navigationMode}
+        showAllRoutes={showAllRoutes}
       />
 
       {/* Header transparan mengambang */}
@@ -207,6 +212,18 @@ export default function Route() {
         />
       )}
 
+      {/* Toggle tampilkan seluruh rute tur (semua leg) — hanya saat bukan navigasi */}
+      {!navigationMode && (
+        <FAB
+          icon={<RouteIcon className="size-6" />}
+          ariaLabel={showAllRoutes ? 'Sembunyikan seluruh rute' : 'Tampilkan seluruh rute'}
+          variant="overlay"
+          className="absolute right-4 z-40 bottom-[calc(45dvh+3rem)] shadow-card-lg"
+          active={showAllRoutes}
+          onClick={() => setShowAllRoutes((v) => !v)}
+        />
+      )}
+
       {!navigationMode ? (
         <RouteBottomSheet
           route={route ?? null}
@@ -220,6 +237,8 @@ export default function Route() {
           onStartNavigation={() => {
             setNavigationMode(true);
             tracking.setFollowMode(true);
+            // Hitung rute dari POSISI KURIR ke stop terpilih saat navigasi mulai.
+            if (route) void rerouteToStop(route, activeStopIndex);
           }}
         />
       ) : (
