@@ -13,8 +13,7 @@ import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
-import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
-import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
+import { fetchLegGeometryWithFallback } from '@/lib/routing/routingService';
 import { buildRouteFingerprint } from '@/lib/routing/routingService';
 import { haversineMeters } from '@/lib/routing/distance';
 import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
@@ -71,8 +70,9 @@ export default function Route() {
       if (!from) return;
       let leg: RouteLegGeometry;
       try {
-        const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
-        leg = apiKey ? await fetchDirectionsGeometry(from, stop, apiKey) : await fetchOsrmRoute(from, stop);
+        // Fallback berlapis: ORS -> OSRM (overview=full) -> OSRM mirror -> garis lurus.
+        // Minimalkan kejadian leg menjadi garis lurus 2 titik saat public server rate-limit.
+        leg = await fetchLegGeometryWithFallback(from, stop);
       } catch {
         leg = {
           coordinates: [[from.lng, from.lat], [stop.lng, stop.lat]],
@@ -196,7 +196,7 @@ export default function Route() {
           icon={<Crosshair className="size-6" />}
           ariaLabel="Navigasi ke titik aktif"
           variant="overlay"
-          className="absolute right-4 z-40 bottom-[calc(45dvh+5rem)] shadow-card-lg"
+          className="absolute right-4 z-40 bottom-[calc(45dvh+9.25rem)] shadow-card-lg"
           onClick={() => openExternalNavigation(activeLat, activeLng)}
         />
       )}
@@ -207,7 +207,7 @@ export default function Route() {
           icon={<LocateFixed className="size-6" />}
           ariaLabel="Kembali ke posisi saya"
           variant="overlay"
-          className="absolute right-4 z-40 bottom-[calc(45dvh+1rem)] shadow-card-lg"
+          className="absolute right-4 z-40 bottom-[calc(45dvh+0.5rem)] shadow-card-lg"
           onClick={() => tracking.setFollowMode(true)}
         />
       )}
@@ -218,7 +218,7 @@ export default function Route() {
           icon={<RouteIcon className="size-6" />}
           ariaLabel={showAllRoutes ? 'Sembunyikan seluruh rute' : 'Tampilkan seluruh rute'}
           variant="overlay"
-          className="absolute right-4 z-40 bottom-[calc(45dvh+3rem)] shadow-card-lg"
+          className="absolute right-4 z-40 bottom-[calc(45dvh+5rem)] shadow-card-lg"
           active={showAllRoutes}
           onClick={() => setShowAllRoutes((v) => !v)}
         />

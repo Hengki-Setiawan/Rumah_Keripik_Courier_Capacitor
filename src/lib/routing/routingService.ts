@@ -3,7 +3,7 @@ import { optimizeWithOrs, fetchDirectionsGeometry, fetchDistanceMatrix } from '.
 import { fetchOsrmRoute } from './osrmClient';
 import { haversineMeters } from './distance';
 import { getCachedRoute, setCachedRoute } from './routeCache';
-import { WAREHOUSE, type RouteWaypoint, type OptimizedRoute, type RouteLegGeometry } from './types';
+import { WAREHOUSE, type LatLng, type RouteWaypoint, type OptimizedRoute, type RouteLegGeometry } from './types';
 
 const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY as string | undefined;
 
@@ -57,9 +57,11 @@ async function fetchLegsConcurrently(orderedStops: RouteWaypoint[]): Promise<Rou
   }
   // Concurrency 5: menghindari burst 14+ request ORS sekaligus yang bisa kena rate-limit,
   // tapi tetap jauh lebih cepat dari berurutan (N request berurutan).
+  // Fallback berlapis (ORS -> OSRM -> mirror) memastikan posisi-posisi tetap berupa
+  // polyline jalan nyata dan hanya turun ke garis lurus bila semuanya gagal.
   return mapWithConcurrency(legPairs, 5, async ([from, to]) => {
     try {
-      return ORS_API_KEY ? await fetchDirectionsGeometry(from, to, ORS_API_KEY) : await fetchOsrmRoute(from, to);
+      return await fetchLegGeometryWithFallback(from, to);
     } catch {
       return straightLineLeg(from, to);
     }
@@ -80,12 +82,66 @@ async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T)
   return results;
 }
 
+const MS_FALLBACK_DELAY = 500;
+const MS_RETRY_DELAY = 1200;
+
+/**
+ * Ambil geometry rute dengan fallback berlapis agar polyline tetap JALAN ASLI
+ * (banyak vertex), bukan garis lurus 2 titik saat satu provider rate-limit/gagal:
+ *   1) openrouteservice (jika ada API key)
+ *   2) OSRM public (overview=full, sudah dari client)
+ *   3) OSRM mirror rounting.openstreetmap.de
+ * Saat OSRM mengembalikan 429 (rate-limit), coba sekali lagi setelah jeda.
+ * Ujung-ujungnya garis lurus hanya dipakai bila SEMUA provider gagal / offline.
+ */
+export async function fetchLegGeometryWithFallback(from: LatLng, to: LatLng): Promise<RouteLegGeometry> {
+  const osrmFallback = async (delayMs?: number) => {
+    if (delayMs) await new Promise((r) => setTimeout(r, delayMs));
+    try {
+      return await fetchOsrmRoute(from, to);
+    } catch (err) {
+      // 429 dari OSRM public: retry sekali setelah jeda sebelum menyerah.
+      if (delayMs == null) return osrmFallback(MS_RETRY_DELAY);
+      throw err;
+    }
+  };
+
+  if (ORS_API_KEY) {
+    try {
+      return await fetchDirectionsGeometry(from, to, ORS_API_KEY);
+    } catch {
+      // ORS gagal (quota/network) -> segera coba OSRM, jangan langsung garis lurus.
+    }
+  }
+  try {
+    return await osrmFallback();
+  } catch {
+    // Tunggu sesaat lalu coba mirror (jeda agar tidak saling bentrok rate-limit).
+    await new Promise((r) => setTimeout(r, MS_FALLBACK_DELAY));
+    try {
+      return await fetchOsrmRoute(from, to);
+    } catch {
+      return straightLineLeg(from, to);
+    }
+  }
+}
+
 function straightLineLeg(a: { lat: number; lng: number }, b: { lat: number; lng: number }): RouteLegGeometry {
   return {
     coordinates: [[a.lng, a.lat], [b.lng, b.lat]],
     distanceMeters: haversineMeters(a, b),
     durationSeconds: 0,
   };
+}
+
+/** True jika seluruh leg berupa polyline jalan nyata (>=3 titik).
+ * Leg garis lurus fallback (2 titik) TIDAK di-cache agar tidak "terkunci"
+ * 24 jam -- rute asli selalu dicoba lagi saat online kembali. */
+function hasRealRoadGeometry(route: OptimizedRoute): boolean {
+  return (
+    route.legs.length > 0 &&
+    route.legs.every((leg) => leg.coordinates && leg.coordinates.length >= 3)
+  );
 }
 
 function straightLineLegs(orderedStops: RouteWaypoint[]): RouteLegGeometry[] {
@@ -166,7 +222,7 @@ export async function buildOptimizedRoute(
         totalDurationSeconds: optimized.totalDurationSeconds,
         source: 'ors-optimization',
       };
-      await setCachedRoute(cacheKey, result);
+      if (hasRealRoadGeometry(result)) await setCachedRoute(cacheKey, result);
       return result;
     } catch (err) {
       console.warn('[routingService] ORS optimization gagal, fallback ke heuristik lokal:', err);
@@ -212,6 +268,6 @@ export async function buildOptimizedRoute(
     totalDurationSeconds: legs.reduce((sum, l) => sum + l.durationSeconds, 0),
     source,
   };
-  await setCachedRoute(cacheKey, result);
+  if (hasRealRoadGeometry(result)) await setCachedRoute(cacheKey, result);
   return result;
 }
