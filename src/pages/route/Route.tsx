@@ -13,7 +13,8 @@ import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
-import { fetchLegGeometryWithFallback } from '@/lib/routing/routingService';
+import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
+import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
 import { buildRouteFingerprint } from '@/lib/routing/routingService';
 import { haversineMeters } from '@/lib/routing/distance';
 import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
@@ -70,9 +71,8 @@ export default function Route() {
       if (!from) return;
       let leg: RouteLegGeometry;
       try {
-        // Fallback berlapis: ORS -> OSRM (overview=full) -> OSRM mirror -> garis lurus.
-        // Minimalkan kejadian leg menjadi garis lurus 2 titik saat public server rate-limit.
-        leg = await fetchLegGeometryWithFallback(from, stop);
+        const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
+        leg = apiKey ? await fetchDirectionsGeometry(from, stop, apiKey) : await fetchOsrmRoute(from, stop);
       } catch {
         leg = {
           coordinates: [[from.lng, from.lat], [stop.lng, stop.lat]],
