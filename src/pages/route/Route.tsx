@@ -61,14 +61,19 @@ export default function Route() {
   const rerouteArmedRef = useRef(true);
   const rerouteInFlightRef = useRef(false);
   const lastRerouteAtRef = useRef(0);
+  const pendingRerouteRef = useRef<{ route: OptimizedRoute; idx: number } | null>(null);
 
   const rerouteToStop = useCallback(
     async (r: OptimizedRoute, idx: number) => {
       const stop = r.orderedStops[idx];
       if (!stop) return;
       const from = tracking.position;
-      // Jangan jatuh ke gudang: tanpa fix GPS, rute leg 0 tidak bisa dihitung ulang.
-      if (!from) return;
+      // Tanpa fix GPS, tidak bisa menghitung rute dari posisi kurir. Simpan target
+      // agar dijalankan otomatis begitu posisi tersedia (lihat effect flush di bawah).
+      if (!from) {
+        pendingRerouteRef.current = { route: r, idx };
+        return;
+      }
       let leg: RouteLegGeometry;
       try {
         const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
@@ -95,6 +100,20 @@ export default function Route() {
     },
     [queryClient, tracking.position],
   );
+
+  // Flush pending reroute: begitu GPS pertama tersedia, hitung ulang rute ke target
+  // yang dipilih sebelumnya (mis. user pilih stop 4 sebelum fix GPS tiba). Sekali saja.
+  const pendingRerouteFlushedAtRef = useRef(0);
+  useEffect(() => {
+    const pending = pendingRerouteRef.current;
+    if (!pending) return;
+    if (!tracking.position) return;
+    // Hindari flush berulang tiap tick GPS: hanya 1x per target.
+    if (Date.now() - pendingRerouteFlushedAtRef.current < 1000) return;
+    pendingRerouteRef.current = null;
+    pendingRerouteFlushedAtRef.current = Date.now();
+    void rerouteToStop(pending.route, pending.idx);
+  }, [tracking.position, rerouteToStop]);
 
   useEffect(() => {
     if (!tracking.offRoute) {
