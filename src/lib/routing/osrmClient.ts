@@ -53,7 +53,7 @@ const OSRM_PRIMARY_BASE = 'https://router.project-osrm.org';
 const OSRM_FALLBACK_BASE = 'https://routing.openstreetmap.de/routed-car';
 
 export async function fetchOsrmRoute(from: LatLng, to: LatLng): Promise<RouteLegGeometry> {
-  const path = `/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true`;
+  const path = `/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson&steps=true&continue_straight=false`;
   
   let res: Response | null = null;
   try {

@@ -125,3 +125,48 @@ export async function optimizeWithOrs(
     totalDurationSeconds: route.duration,
   };
 }
+
+interface SnapResultItem {
+  location?: [number, number];
+  name?: string;
+  snapped_distance?: number;
+}
+
+/**
+ * ORS Snap (POST /v2/snap/driving-car): menggeser koordinat stop yang
+ * meleset dari jalan ke titik terdekat di jaringan jalan (driving-network).
+ * Hanya menggeser bila jarak ke jalan <= maxSnapDistanceM, sisanya dibiarkan.
+ * Batch API: 1 request untuk semua stop (ekonomis di kuota). Endpoint ini
+ * sudah diverifikasi live: respons `locations[]` berisi null atau
+ * `{location, name, snapped_distance}`.
+ */
+export async function snapStopsToRoad(
+  stops: RouteWaypoint[],
+  apiKey: string,
+  maxSnapDistanceM = 150,
+  radius = 300,
+): Promise<RouteWaypoint[]> {
+  if (stops.length === 0) return stops;
+
+  const res = await fetch('https://api.openrouteservice.org/v2/snap/driving-car', {
+    method: 'POST',
+    headers: { 'Authorization': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      locations: stops.map((s) => [s.lng, s.lat]),
+      radius,
+    }),
+  });
+  if (!res.ok) throw new Error(`ORS snap error: ${res.status}`);
+  const data = await res.json();
+  const locations = data.locations as (SnapResultItem | null)[] | undefined;
+  if (!Array.isArray(locations) || locations.length !== stops.length) return stops;
+
+  return stops.map((s, i) => {
+    const hit = locations[i];
+    const dist = hit?.snapped_distance;
+    if (!hit?.location || dist == null || dist > maxSnapDistanceM) return s;
+    const [lng, lat] = hit.location;
+    if (typeof lng !== 'number' || typeof lat !== 'number') return s;
+    return { ...s, lat, lng, address: s.address, customerName: s.customerName, sequence: s.sequence };
+  });
+}

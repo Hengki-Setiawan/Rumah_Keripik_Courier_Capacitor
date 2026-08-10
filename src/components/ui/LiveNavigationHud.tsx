@@ -1,14 +1,16 @@
 import { Navigation, MapPin } from 'lucide-react';
 import type { OptimizedRoute } from '@/lib/routing/types';
+import type { TrackedLocation } from '@/lib/location';
 import { haversineMeters } from '@/lib/routing/distance';
 import { remainingDistanceToEndM } from '@/lib/routing/navigation';
+import { calibrateDurationSeconds, etaMinutesFromSpeed } from '@/lib/routing/eta';
 import { openExternalNavigation } from '@/lib/openMaps';
 import { cn } from '@/lib/cn';
 
 interface LiveNavigationHudProps {
   route: OptimizedRoute | null;
   activeStopIndex: number;
-  courierLocation?: { lat: number; lng: number } | null;
+  courierLocation?: TrackedLocation | null;
   className?: string;
 }
 
@@ -28,14 +30,27 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
     const remaining = courierLocation ? remainingDistanceToEndM(leg, courierLocation) : null;
     distanceM = remaining ?? leg.distanceMeters;
     const fraction = remaining != null && leg.distanceMeters > 0 ? remaining / leg.distanceMeters : 1;
-    etaMin = leg.durationSeconds > 0 ? Math.max(1, Math.round((leg.durationSeconds * fraction) / 60)) : 0;
+    // ETA kalibrasi: pakai kecepatan riil GPS saat kurir bergerak; jika diam,
+    // pakai durasi rute yang sudah dikalibrasi jam sibuk Makassar (eta.ts).
+    const speedKmh = courierLocation?.speed ?? 0;
+    if (speedKmh >= 5) {
+      etaMin = etaMinutesFromSpeed(distanceM, speedKmh);
+    } else {
+      const calibrated = leg.durationSeconds > 0 ? calibrateDurationSeconds(leg.durationSeconds) : 0;
+      etaMin = calibrated > 0 ? Math.max(1, Math.round((calibrated * fraction) / 60)) : 0;
+    }
   }
   if (distanceM == null || distanceM <= 0) {
     // Fallback perkiraan: haversine dari posisi kurir (atau gudang) ke stop.
     const from = courierLocation ?? { lat: -5.134, lng: 119.4135 };
     distanceM = haversineMeters(from, stop);
-    // Asumsi kecepatan kurir motor di kota ~20 km/jam untuk perkiraan kasar.
-    etaMin = Math.max(1, Math.round((distanceM / 1000 / 20) * 60));
+    // Asumsi kecepatan kurir motor di kota ~20 km/jam untuk perkiraan kasar;
+    // kecepatan GPS riil (bila ada) dipakai untuk hasil yang lebih akurat.
+    const speedKmh = courierLocation?.speed ?? 0;
+    etaMin =
+      speedKmh >= 5
+        ? etaMinutesFromSpeed(distanceM, speedKmh)
+        : Math.max(1, Math.round((distanceM / 1000 / 20) * 60));
   }
 
   return (

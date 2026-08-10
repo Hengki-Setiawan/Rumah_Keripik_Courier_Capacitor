@@ -1,5 +1,5 @@
 import { optimizeStopOrder, twoOptImprove, orOptImprove } from './tsp';
-import { optimizeWithOrs, fetchDirectionsGeometry, fetchDistanceMatrix } from './orsClient';
+import { optimizeWithOrs, fetchDirectionsGeometry, fetchDistanceMatrix, snapStopsToRoad } from './orsClient';
 import { fetchOsrmRoute } from './osrmClient';
 import { haversineMeters } from './distance';
 import { getCachedRoute, setCachedRoute } from './routeCache';
@@ -149,13 +149,28 @@ export async function buildOptimizedRoute(
   debugLog('isNetworkReachable:', online);
 
   if (cached && !online) return cached;
+  // Snap koordinat stop yang meleset ke jaringan jalan (ORS Snap) saat online.
+  // Silent-fail: jika gagal/offline, pakai koordinat asli.
+  let snappedStops: RouteWaypoint[] = stops;
+  if (!opts.forceOffline && online && ORS_API_KEY) {
+    try {
+      const snapped = await snapStopsToRoad(stops, ORS_API_KEY);
+      const moved = snapped.filter((s, i) => s.lat !== stops[i].lat || s.lng !== stops[i].lng).length;
+      if (moved > 0) {
+        snappedStops = snapped;
+        debugLog('ORS snap diterapkan untuk', moved, 'stop');
+      }
+    } catch (err) {
+      console.warn('[routingService] ORS snap gagal, lanjut koordinat asli:', err);
+    }
+  }
 
   // 1) Jalur terbaik: ORS optimization (online + API key)
   if (!opts.forceOffline && online && ORS_API_KEY) {
     try {
-      const optimized = await optimizeWithOrs(WAREHOUSE, stops, ORS_API_KEY);
+      const optimized = await optimizeWithOrs(WAREHOUSE, snappedStops, ORS_API_KEY);
       const orderedStops = optimized.orderedDeliveryIds
-        .map((id) => stops.find((s) => s.deliveryId === id))
+        .map((id) => snappedStops.find((s) => s.deliveryId === id))
         .filter((s): s is RouteWaypoint => !!s);
 
       const legs = await fetchLegsConcurrently(orderedStops);
@@ -174,8 +189,8 @@ export async function buildOptimizedRoute(
   }
 
   // 2) Fallback: heuristik lokal (offline-safe)
-  const localResult = optimizeStopOrder(WAREHOUSE, stops.map(toLatLng));
-  let orderedStops = localResult.orderIndices.slice(1).map((idx) => stops[idx - 1]);
+  const localResult = optimizeStopOrder(WAREHOUSE, snappedStops.map(toLatLng));
+  let orderedStops = localResult.orderIndices.slice(1).map((idx) => snappedStops[idx - 1]);
 
   // 2b) Upgrade: perbaiki urutan dengan matriks jarak jalan asli (ORS Matrix) saat online
   let usedRoadMatrix = false;

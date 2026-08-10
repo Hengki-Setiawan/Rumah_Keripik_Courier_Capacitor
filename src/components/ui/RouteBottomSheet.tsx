@@ -2,6 +2,7 @@ import { Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { BottomSheet, type SnapPoint } from '@/components/ui/BottomSheet';
+import { calibrateDurationSeconds } from '@/lib/routing/eta';
 import type { OptimizedRoute } from '@/lib/routing/types';
 // openExternalNavigation removed for in-app navigation
 
@@ -40,7 +41,7 @@ export function RouteBottomSheet({
               {stops.length} titik pemberhentian
               {route
                 ? ` · ~${(route.totalDistanceMeters / 1000).toFixed(1)} km` +
-                  (route.totalDurationSeconds ? ` · ~${Math.round(route.totalDurationSeconds / 60)} menit` : '')
+                  (route.totalDurationSeconds ? ` · ~${Math.round(calibrateDurationSeconds(route.totalDurationSeconds) / 60)} menit` : '')
                 : ''}
             </p>
           </div>
@@ -113,6 +114,6 @@ function legSummary(route: OptimizedRoute, i: number): string {
   if (!leg) return '';
   const parts: string[] = [];
   if (leg.distanceMeters > 0) parts.push(`${(leg.distanceMeters / 1000).toFixed(1)} km`);
-  if (leg.durationSeconds > 0) parts.push(`${Math.round(leg.durationSeconds / 60)} menit`);
+  if (leg.durationSeconds > 0) parts.push(`${Math.round(calibrateDurationSeconds(leg.durationSeconds) / 60)} menit`);
   return parts.join(' · ');
 }
