@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { FilterPill } from '@/components/ui/FilterPill';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Sparkline } from '@/components/ui/Sparkline';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { apiRequest } from '@/lib/api-client';
 import { formatCurrency, formatDateTime } from '@/lib/format';
 import { useQuery } from '@tanstack/react-query';
@@ -71,7 +72,11 @@ export default function Earnings() {
         </Card>
 
         {isLoading && !data ? (
-          <Card><p className="text-center text-sm text-ink-muted py-6">Memuat...</p></Card>
+          <div className="flex flex-col gap-3" aria-busy="true" aria-label="Memuat pendapatan">
+            <Skeleton className="h-28 w-full rounded-[20px]" />
+            <Skeleton className="h-16 w-full rounded-[20px]" />
+            <Skeleton className="h-16 w-full rounded-[20px]" />
+          </div>
         ) : entries.length === 0 ? (
           <Card>
             <EmptyState

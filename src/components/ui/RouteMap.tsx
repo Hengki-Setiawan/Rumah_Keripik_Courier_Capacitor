@@ -215,7 +215,7 @@ export function RouteMap({
             {
               type: 'Feature' as const,
               geometry: { type: 'LineString' as const, coordinates: leg.coordinates },
-              properties: {},
+              properties: { fallback: leg.coordinates.length < 3 },
             },
           ],
         };
@@ -229,7 +229,7 @@ export function RouteMap({
           {
             type: 'Feature' as const,
             geometry: { type: 'LineString' as const, coordinates: [[userLocation.lng, userLocation.lat], [stop.lng, stop.lat]] },
-            properties: {},
+            properties: { fallback: true },
           },
         ],
       };
@@ -242,7 +242,7 @@ export function RouteMap({
       .map((leg) => ({
         type: 'Feature' as const,
         geometry: { type: 'LineString' as const, coordinates: leg.coordinates },
-        properties: {},
+        properties: { fallback: leg.coordinates.length < 3 },
       }));
     if (features.length === 0) return null;
     return { type: 'FeatureCollection' as const, features };
@@ -268,6 +268,7 @@ export function RouteMap({
             <Layer
               id="route-line-outline"
               type="line"
+              filter={['!=', ['get', 'fallback'], true]}
               paint={{
                 'line-color': globalTokens.white,
                 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 8, 18, 13],
@@ -278,9 +279,24 @@ export function RouteMap({
             <Layer
               id="route-line-main"
               type="line"
+              filter={['!=', ['get', 'fallback'], true]}
               paint={{
                 'line-color': globalTokens.amber[500],
                 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 5, 18, 9],
+              }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' }}
+            />
+            {/* R3.5 placeholder: leg perkiraan (garis lurus antar titik, belum ada
+                geometri jalan) digambar putus-putus + lebih pudar, menandakan sementara. */}
+            <Layer
+              id="route-line-placeholder"
+              type="line"
+              filter={['==', ['get', 'fallback'], true]}
+              paint={{
+                'line-color': globalTokens.amber[500],
+                'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 3, 18, 5],
+                'line-opacity': 0.45,
+                'line-dasharray': [2, 2],
               }}
               layout={{ 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' }}
             />
@@ -312,14 +328,14 @@ export function RouteMap({
       </Map>
 
       {route?.source === 'straight-line-fallback' && (
-        <div className="absolute top-[calc(env(safe-area-inset-top)+56px)] left-4 right-4 flex items-center gap-2 rounded-2xl bg-warn-soft px-4 py-2.5 text-sm text-warn shadow-card">
+        <div className="absolute top-[calc(env(safe-area-inset-top,0px)+4.875rem)] left-4 right-4 flex items-center gap-2 rounded-2xl bg-warn-soft px-4 py-2.5 text-sm text-warn shadow-card z-10">
           <TriangleAlert className="size-4 shrink-0" />
           <span>Rute perkiraan (offline) - akan disinkronkan otomatis saat online kembali.</span>
         </div>
       )}
 
       {offRoute && (
-        <div className="absolute top-[calc(env(safe-area-inset-top)+104px)] left-4 right-4 flex items-center gap-2 rounded-2xl bg-warn px-4 py-2.5 text-sm font-semibold text-on-accent shadow-card">
+        <div className="absolute top-[calc(env(safe-area-inset-top,0px)+8.5rem)] left-4 right-4 flex items-center gap-2 rounded-2xl bg-warn px-4 py-2.5 text-sm font-semibold text-on-accent shadow-card z-10">
           <TriangleAlert className="size-4 shrink-0" />
           <span>
             Di luar rute

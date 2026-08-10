@@ -33,6 +33,9 @@ export const semanticDark = {
   'status.info': g.blue[300],
   'status.infoSubtle': 'rgba(61,126,166,0.16)',
 
+  'status.money': g.yellow[500],
+  'status.moneySubtle': 'rgba(217,164,65,0.16)',
+
   'glow.accent': 'rgba(197,90,43,0.45)',
   'glow.danger': 'rgba(220,38,38,0.5)',
   'glow.success': 'rgba(95,122,46,0.4)',
@@ -68,6 +71,9 @@ export const semanticLight: Record<keyof typeof semanticDark, string> = {
   'status.warningSubtle': 'rgba(217,164,65,0.14)',
   'status.info': g.blue[600],
   'status.infoSubtle': 'rgba(61,126,166,0.1)',
+
+  'status.money': g.yellow[600],
+  'status.moneySubtle': 'rgba(217,164,65,0.14)',
 
   'glow.accent': 'transparent',
   'glow.danger': 'transparent',

@@ -10,6 +10,7 @@ import { getCurrentPosition } from '@/lib/location';
 import { startLocationTracking, stopLocationTracking } from '@/lib/background-location';
 import { formatTime } from '@/lib/format';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
+import { toast } from '@/stores/toast-store';
 import type { AttendanceRecord } from '@/lib/types';
 
 interface ClockInResponse {
@@ -76,6 +77,7 @@ export default function Shift() {
       setGeofence(res.data.geofence ?? null);
       setIsActive(true);
       await hapticNotification('success');
+      toast.success('Shift dimulai');
       await startLocationTracking();
       loadAttendance();
     } catch (err) {
@@ -86,6 +88,7 @@ export default function Shift() {
             : 'Lokasi di luar batas radius gudang.',
         );
         await hapticNotification('error');
+        toast.error('Lokasi di luar radius gudang');
         return;
       }
       await enqueueAction({
@@ -98,6 +101,7 @@ export default function Shift() {
       setClockedAt(new Date().toISOString());
       setGeofence(null);
       await hapticImpact('light');
+      toast.warning('Offline — clock-in disimpan & dikirim otomatis');
       await startLocationTracking();
     } finally {
       setBusy(false);
@@ -115,6 +119,7 @@ export default function Shift() {
       }
       await apiRequest('/api/courier/shift/clock-out', { method: 'POST', body: JSON.stringify(payload) });
       await hapticNotification('success');
+      toast.success('Shift selesai');
     } catch {
       await enqueueAction({
         entityType: 'shift',
@@ -123,6 +128,7 @@ export default function Shift() {
         payload: { shiftId },
       });
       await hapticImpact('light');
+      toast.warning('Offline — clock-out disimpan & dikirim otomatis');
     } finally {
       await stopLocationTracking();
       setIsActive(false);

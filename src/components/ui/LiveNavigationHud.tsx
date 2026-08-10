@@ -56,7 +56,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
   return (
     <div
       className={cn(
-        'pointer-events-none absolute left-4 right-4 top-[calc(env(safe-area-inset-top)+120px)] z-10 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card',
+        'pointer-events-none absolute left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+4.375rem)] z-10 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card',
         className,
       )}
     >
@@ -66,7 +66,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs font-medium text-ink-secondary">Menuju stop #{activeStopIndex + 1}</p>
         <p className="truncate text-sm font-semibold text-ink">{stop.customerName ?? 'Pelanggan'}</p>
-        <p className="text-xs text-ink-secondary">
+        <p className="text-xs tabular-nums text-ink-secondary">
           {distanceM < 400 ? (
             <span className="text-ok">Kurang dari 400 m - segera tiba</span>
           ) : (

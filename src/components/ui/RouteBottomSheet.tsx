@@ -1,6 +1,7 @@
 import { Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { BottomSheet, type SnapPoint } from '@/components/ui/BottomSheet';
 import { calibrateDurationSeconds } from '@/lib/routing/eta';
 import type { OptimizedRoute } from '@/lib/routing/types';
@@ -37,7 +38,7 @@ export function RouteBottomSheet({
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-semibold text-ink">Rute Pengiriman</p>
-            <p className="mt-0.5 text-xs text-ink-muted">
+            <p className="mt-0.5 text-xs tabular-nums text-ink-muted">
               {stops.length} titik pemberhentian
               {route
                 ? ` · ~${(route.totalDistanceMeters / 1000).toFixed(1)} km` +
@@ -51,7 +52,17 @@ export function RouteBottomSheet({
         </div>
 
         {loading && !route ? (
-          <Card><p className="py-4 text-center text-sm text-ink-muted">Memuat rute...</p></Card>
+          <div className="flex flex-col gap-2" aria-busy="true" aria-label="Memuat rute">
+            {[0, 1, 2].map((n) => (
+              <div key={n} className="flex items-center gap-3 rounded-[20px] bg-raised p-4 shadow-card">
+                <Skeleton className="size-8 shrink-0 rounded-full" />
+                <div className="flex flex-1 flex-col gap-2">
+                  <Skeleton className="h-4 w-36" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : stops.length === 0 ? (
           <Card>
             <p className="py-4 text-center text-sm text-ink-muted">Tidak ada titik pengiriman untuk hari ini.</p>
@@ -72,7 +83,7 @@ export function RouteBottomSheet({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-ink">{s.customerName ?? 'Pelanggan'}</p>
                     {route && (
-                      <p className="mt-0.5 text-[11px] text-ink-muted">
+                      <p className="mt-0.5 text-[11px] tabular-nums text-ink-muted">
                         {legSummary(route, i)}
                       </p>
                     )}

@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { apiRequest } from '@/lib/api-client';
 import { formatDateTime } from '@/lib/format';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -59,7 +60,15 @@ export default function Notifications() {
       </div>
 
       {isLoading && !data ? (
-        <Card><p className="text-center text-sm text-ink-muted py-6">Memuat...</p></Card>
+        <div className="flex flex-col gap-2" aria-busy="true" aria-label="Memuat notifikasi">
+          {[0, 1, 2].map((n) => (
+            <div key={n} className="flex flex-col gap-2 rounded-[20px] bg-raised p-4 shadow-card">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-56" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          ))}
+        </div>
       ) : list.length === 0 ? (
         <Card>
           <EmptyState

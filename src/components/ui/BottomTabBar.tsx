@@ -1,4 +1,5 @@
 import { House, ScrollText, ChartColumnBig } from 'lucide-react';
+import { m } from 'motion/react';
 import { cn } from '@/lib/cn';
 
 export type TabKey = 'beranda' | 'history' | 'stats';
@@ -24,13 +25,27 @@ export function BottomTabBar({ active, onChange }: BottomTabBarProps) {
             <button
               key={key}
               onClick={() => onChange(key)}
+              aria-label={label}
               className={cn(
-                'flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium transition-colors',
+                'relative flex flex-1 flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] font-medium transition-colors',
                 isActive ? 'text-brand' : 'text-ink-muted',
               )}
             >
-              <Icon className={cn('size-5', isActive && 'drop-shadow-[0_0_6px_rgba(217,119,6,0.45)]')} strokeWidth={isActive ? 2.4 : 1.8} />
-              {label}
+              {isActive && (
+                <m.div
+                  layoutId="tab-pill"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                  className="absolute inset-0 rounded-2xl bg-brand-soft"
+                />
+              )}
+              <Icon
+                className={cn(
+                  'relative z-10 size-5',
+                  isActive && 'drop-shadow-[0_0_6px_rgba(217,119,6,0.45)]',
+                )}
+                strokeWidth={isActive ? 2.4 : 1.8}
+              />
+              <span className="relative z-10">{label}</span>
             </button>
           );
         })}

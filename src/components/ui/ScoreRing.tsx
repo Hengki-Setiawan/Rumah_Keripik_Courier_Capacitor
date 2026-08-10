@@ -40,7 +40,7 @@ export function ScoreRing({ score, size = 96, strokeWidth = 8, label, className 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-bold text-ink">{Math.round(normalized)}</span>
+        <span className="text-2xl font-bold tabular-nums text-ink">{Math.round(normalized)}</span>
         {label && <span className="text-[10px] text-ink-muted">{label}</span>}
       </div>
     </div>

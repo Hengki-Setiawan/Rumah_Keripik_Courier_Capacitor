@@ -3,7 +3,9 @@ import { Package, MapPin, Clock3, CheckCircle2, Wallet, TimerReset, Navigation, 
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
+import { IconBadge } from '@/components/ui/IconBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useTodayDeliveries, invalidateDeliveries } from '@/hooks/use-deliveries';
 import { useStats } from '@/hooks/use-stats';
 import { useEarnings } from '@/hooks/use-earnings';
@@ -37,7 +39,7 @@ export default function Dashboard() {
     >
       <div className="flex flex-col gap-4">
         <Card elevation={2} padding="lg" className="relative overflow-hidden">
-          <div className="absolute -right-6 -top-6 size-28 rounded-full bg-brand/10 blur-2xl" />
+          <div className="absolute -right-8 -top-8 size-36 rounded-full bg-brand/20 blur-xl" />
           <p className="text-xs text-ink-muted">Selamat datang,</p>
           <h2 className="mt-0.5 text-xl font-bold text-ink">{courier?.name ?? 'Kurir'}</h2>
           {courier?.phone && <p className="mt-1 text-xs text-ink-secondary">{courier.phone}</p>}
@@ -85,7 +87,7 @@ export default function Dashboard() {
             label="Pendapatan Minggu Ini"
             value={formatCurrency(earnings?.summary.totalConfirmed ?? 0)}
             icon={<Wallet className="size-5" />}
-            tone="emerald"
+            tone="money"
             hint={stats ? `${stats.totalCompleted} selesai` : undefined}
           />
         </div>
@@ -95,36 +97,28 @@ export default function Dashboard() {
             onClick={() => navigate('/route')}
             className="flex items-center gap-3 rounded-[20px] bg-raised p-4 text-ink shadow-card hover:shadow-card-lg active:scale-[0.98] transition-all"
           >
-            <div className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-brand-pressed">
-              <Navigation className="size-5" />
-            </div>
+            <IconBadge icon={Navigation} tone="brand" />
             <span className="text-sm font-semibold">Rute</span>
           </button>
           <button
             onClick={() => navigate('/shift')}
             className="flex items-center gap-3 rounded-[20px] bg-raised p-4 text-ink shadow-card hover:shadow-card-lg active:scale-[0.98] transition-all"
           >
-            <div className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-brand-pressed">
-              <TimerReset className="size-5" />
-            </div>
+            <IconBadge icon={TimerReset} tone="brand" />
             <span className="text-sm font-semibold">Shift</span>
           </button>
           <button
             onClick={() => navigate('/earnings')}
             className="flex items-center gap-3 rounded-[20px] bg-raised p-4 text-ink shadow-card hover:shadow-card-lg active:scale-[0.98] transition-all"
           >
-            <div className="flex size-10 items-center justify-center rounded-full bg-ok-soft text-ok">
-              <Wallet className="size-5" />
-            </div>
+            <IconBadge icon={Wallet} tone="money" />
             <span className="text-sm font-semibold">Pendapatan</span>
           </button>
           <button
             onClick={() => navigate('/sos')}
             className="flex items-center gap-3 rounded-[20px] bg-raised p-4 text-ink shadow-card hover:shadow-card-lg active:scale-[0.98] transition-all ring-1 ring-alert/30"
           >
-            <div className="flex size-10 items-center justify-center rounded-full bg-alert text-on-danger">
-              <Siren className="size-5" />
-            </div>
+            <IconBadge icon={Siren} emphasis="solid-alert" />
             <span className="text-sm font-semibold">SOS</span>
           </button>
         </div>
@@ -137,7 +131,9 @@ export default function Dashboard() {
             </button>
           </div>
           {isLoading && !deliveries ? (
-            <Card><p className="text-center text-sm text-ink-muted py-4">Memuat...</p></Card>
+            <div aria-busy="true" aria-label="Memuat pengiriman">
+              <Skeleton className="h-[76px] w-full rounded-[20px]" />
+            </div>
           ) : !nextUp ? (
             <Card>
               <EmptyState
@@ -161,7 +157,7 @@ export default function Dashboard() {
                 <span className="text-[10px] font-semibold text-brand-pressed">{formatTime(nextUp.created_at)}</span>
               </div>
               {nextUp.distance_km != null && (
-                <p className="mt-3 text-xs text-ink-muted">Jarak: {Number(nextUp.distance_km).toFixed(1)} km</p>
+                <p className="mt-3 text-xs tabular-nums text-ink-muted">Jarak: {Number(nextUp.distance_km).toFixed(1)} km</p>
               )}
             </Card>
           )}

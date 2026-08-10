@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { getCurrentPosition } from '@/lib/location';
+import { toast } from '@/stores/toast-store';
 
 type ServerIncidentType = 'kecelakaan' | 'kendaraan_mogok' | 'cuaca_ekstrem' | 'keamanan' | 'kesehatan' | 'lainnya';
 
@@ -65,9 +66,11 @@ export default function Incidents() {
     try {
       await apiRequest('/api/courier/incidents', { method: 'POST', body: payload });
       setDone(true);
+      toast.success('Laporan berhasil dikirim');
     } catch {
       await enqueueAction({ entityType: 'incident', entityId: Date.now().toString(), action: 'report', payload });
       setDone(true);
+      toast.warning('Offline — laporan disimpan & dikirim otomatis');
     } finally {
       setSubmitting(false);
     }

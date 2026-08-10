@@ -19,6 +19,7 @@ import { buildRouteQueryKey } from '@/lib/routing/routingService';
 import { haversineMeters } from '@/lib/routing/distance';
 import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
+import { hapticImpact } from '@/lib/haptics';
 import type { SnapPoint } from '@/components/ui/BottomSheet';
 
 export default function Route() {
@@ -177,7 +178,7 @@ export default function Route() {
       />
 
       {/* Header transparan mengambang */}
-      <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-3 bg-gradient-to-b from-black/25 to-transparent">
+      <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)] pb-3 bg-gradient-to-b from-black/30 via-black/15 to-transparent z-20">
         <button
           aria-label="Kembali"
           onClick={() => navigate('/')}
@@ -195,12 +196,12 @@ export default function Route() {
         </button>
       </div>
 
-      {/* Banner manuver turn-by-turn â€” hanya muncul saat mode navigasi aktif */}
+      {/* Banner manuver turn-by-turn — hanya muncul saat mode navigasi aktif */}
       {navigationMode && (!tracking.offRoute || navigationMode) && (
         <TurnByTurnHud leg={route?.legs[activeStopIndex] ?? null} position={tracking.position} />
       )}
 
-      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps â€” disembunyikan saat navigationMode */}
+      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps — disembunyikan saat navigationMode */}
       {!navigationMode && (
         <LiveNavigationHud
           route={route ?? null}
@@ -209,39 +210,37 @@ export default function Route() {
         />
       )}
 
-      {/* Navigasi ke stop aktif */}
-      {activeLat != null && activeLng != null && !navigationMode && (
-        <FAB
-          icon={<Crosshair className="size-6" />}
-          ariaLabel="Navigasi ke titik aktif"
-          variant="overlay"
-          className="absolute right-4 z-40 bottom-[calc(45dvh+9.25rem)] shadow-card-lg"
-          onClick={() => openExternalNavigation(activeLat, activeLng)}
-        />
-      )}
+      {/* Map action strip (R3.2): satu container tombol kontrol peta — jarak seragam,
+          satu posisi kanan layar, alih-alih tiga FAB absolute terpisah. */}
+      <div className="absolute right-4 bottom-[calc(54dvh+0.5rem)] z-40 flex flex-col gap-3">
+        {activeLat != null && activeLng != null && !navigationMode && (
+          <FAB
+            icon={<Crosshair className="size-6" />}
+            ariaLabel="Navigasi ke titik aktif"
+            variant="overlay"
+            onClick={() => { void hapticImpact('light'); openExternalNavigation(activeLat, activeLng); }}
+          />
+        )}
 
-      {/* Recenter peta ke posisi kurir */}
-      {tracking.position && !navigationMode && (
-        <FAB
-          icon={<LocateFixed className="size-6" />}
-          ariaLabel="Kembali ke posisi saya"
-          variant="overlay"
-          className="absolute right-4 z-40 bottom-[calc(45dvh+0.5rem)] shadow-card-lg"
-          onClick={() => tracking.setFollowMode(true)}
-        />
-      )}
+        {!navigationMode && (
+          <FAB
+            icon={<RouteIcon className="size-6" />}
+            ariaLabel={showAllRoutes ? 'Sembunyikan seluruh rute' : 'Tampilkan seluruh rute'}
+            variant="overlay"
+            active={showAllRoutes}
+            onClick={() => { void hapticImpact('light'); setShowAllRoutes((v) => !v); }}
+          />
+        )}
 
-      {/* Toggle tampilkan seluruh rute tur (semua leg) — hanya saat bukan navigasi */}
-      {!navigationMode && (
-        <FAB
-          icon={<RouteIcon className="size-6" />}
-          ariaLabel={showAllRoutes ? 'Sembunyikan seluruh rute' : 'Tampilkan seluruh rute'}
-          variant="overlay"
-          className="absolute right-4 z-40 bottom-[calc(45dvh+5rem)] shadow-card-lg"
-          active={showAllRoutes}
-          onClick={() => setShowAllRoutes((v) => !v)}
-        />
-      )}
+        {tracking.position && !navigationMode && (
+          <FAB
+            icon={<LocateFixed className="size-6" />}
+            ariaLabel="Kembali ke posisi saya"
+            variant="overlay"
+            onClick={() => { void hapticImpact('light'); tracking.setFollowMode(true); }}
+          />
+        )}
+      </div>
 
       {!navigationMode ? (
         <RouteBottomSheet
@@ -254,6 +253,7 @@ export default function Route() {
           activeStopIndex={activeStopIndex}
           onSelectStop={(i) => { setActiveStopIndex(i); if (snap === 'peek') setSnap('half'); }}
           onStartNavigation={() => {
+            void hapticImpact('medium');
             setNavigationMode(true);
             tracking.setFollowMode(true);
             // Hitung rute dari POSISI KURIR ke stop terpilih saat navigasi mulai.

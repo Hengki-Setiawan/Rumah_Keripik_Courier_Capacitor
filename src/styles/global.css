@@ -37,6 +37,9 @@
   --status-info: #93c5e8;
   --status-info-subtle: rgba(61, 126, 166, 0.16);
 
+  --status-money: #e8b84b;
+  --status-money-subtle: rgba(217, 164, 65, 0.18);
+
   --glow-accent: rgba(197, 90, 43, 0.45);
   --glow-danger: rgba(220, 38, 38, 0.5);
   --glow-success: rgba(95, 122, 46, 0.4);
@@ -74,6 +77,9 @@
   --status-warning-subtle: #fbf0dc;
   --status-info: #2563a8;
   --status-info-subtle: #e8f1fb;
+
+  --status-money: #b7791f;
+  --status-money-subtle: #fbf0dc;
 
   --glow-accent: transparent;
   --glow-danger: transparent;
@@ -155,6 +161,9 @@ body {
   --color-warn-soft: var(--status-warning-subtle);
   --color-info: var(--status-info);
   --color-info-soft: var(--status-info-subtle);
+
+  --color-money: var(--status-money);
+  --color-money-soft: var(--status-money-subtle);
 
   --shadow-card: 0 1px 3px 0 rgb(28 25 23 / 0.06), 0 1px 2px -1px rgb(28 25 23 / 0.04);
   --shadow-card-lg: 0 8px 24px -8px rgb(28 25 23 / 0.12), 0 2px 6px -2px rgb(28 25 23 / 0.05);

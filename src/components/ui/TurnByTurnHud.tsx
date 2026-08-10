@@ -45,7 +45,7 @@ export function TurnByTurnHud({ leg, position, className }: TurnByTurnHudProps) 
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-x-4 top-[calc(env(safe-area-inset-top)+56px)] z-10 flex items-center gap-3 rounded-2xl bg-surface/95 px-4 py-3 shadow-card backdrop-blur',
+        'pointer-events-none absolute inset-x-4 top-[calc(env(safe-area-inset-top,0px)+4.375rem)] z-10 flex items-center gap-3 rounded-2xl bg-surface/95 px-4 py-3 shadow-card backdrop-blur',
         className,
       )}
     >

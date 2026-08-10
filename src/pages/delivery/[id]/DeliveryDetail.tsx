@@ -4,11 +4,15 @@ import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, Credi
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useDeliveryDetail } from '@/hooks/use-deliveries';
 import { useDeliveryStore } from '@/stores/delivery-store';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { formatCurrency, formatDateTime } from '@/lib/format';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
+import { toast } from '@/stores/toast-store';
 
 export default function DeliveryDetail() {
   const { id } = useParams<{ id: string }>();
@@ -19,7 +23,15 @@ export default function DeliveryDetail() {
   const [busy, setBusy] = useState(false);
 
   if (isLoading && !delivery) {
-    return <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}><Card><p className="text-center text-sm text-ink-muted py-6">Memuat...</p></Card></AppShell>;
+    return (
+      <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}>
+        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat detail pengiriman">
+          <Skeleton className="h-24 w-full rounded-[20px]" />
+          <Skeleton className="h-28 w-full rounded-[20px]" />
+          <Skeleton className="h-24 w-full rounded-[20px]" />
+        </div>
+      </AppShell>
+    );
   }
   if (!delivery) {
     return <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}><Card><p className="text-center text-sm text-alert py-6">Pengiriman tidak ditemukan.</p></Card></AppShell>;
@@ -30,9 +42,12 @@ export default function DeliveryDetail() {
     try {
       await apiRequest(`/api/courier/deliveries/${deliveryId}/${status}`, { method: 'POST' });
       updateDeliveryStatus(deliveryId, status === 'start' ? 'Dalam_Pengiriman' : status === 'complete' ? 'Terkirim' : 'Dalam_Pengiriman');
+      await hapticImpact(status === 'complete' ? 'heavy' : 'light');
       if (status === 'start' || status === 'arrived') {
         navigate(`/delivery/${deliveryId}/proof`);
       } else {
+        await hapticNotification('success');
+        toast.success('Pengiriman selesai');
         navigate('/');
       }
     } catch {
@@ -43,6 +58,13 @@ export default function DeliveryDetail() {
         payload: { deliveryId },
       });
       updateDeliveryStatus(deliveryId, status === 'start' ? 'Dalam_Pengiriman' : status === 'complete' ? 'Terkirim' : 'Dalam_Pengiriman');
+      if (status === 'start' || status === 'arrived') {
+        navigate(`/delivery/${deliveryId}/proof`);
+      } else {
+        await hapticNotification('success');
+        toast.warning('Offline — "Selesai" disimpan & dikirim otomatis');
+        navigate('/');
+      }
     } finally {
       setBusy(false);
     }
@@ -57,9 +79,7 @@ export default function DeliveryDetail() {
               <p className="text-xs text-ink-muted">Kode Pesanan</p>
               <p className="text-lg font-bold text-brand">{delivery.kodePesanan}</p>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${statusBadge(delivery.status)}`}>
-              {delivery.status}
-            </span>
+            <StatusBadge status={delivery.status} />
           </div>
           {delivery.totalBayar > 0 && (
             <div className="mt-2 flex items-center gap-1.5 text-sm text-ink-secondary">
@@ -123,7 +143,7 @@ export default function DeliveryDetail() {
                       {item.beratGram ? ` · ${item.beratGram} g` : ''}
                     </p>
                   </div>
-                  <p className="shrink-0 text-sm font-semibold text-ink">{formatCurrency(item.subtotal)}</p>
+                  <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">{formatCurrency(item.subtotal)}</p>
                 </div>
               ))}
             </div>
@@ -171,7 +191,7 @@ export default function DeliveryDetail() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-ink-muted">Subtotal</span>
-              <span className="font-semibold text-brand">{formatCurrency(delivery.totalBayar)}</span>
+              <span className="font-semibold tabular-nums text-brand">{formatCurrency(delivery.totalBayar)}</span>
             </div>
             {delivery.notes && (
               <div className="border-t border-border-subtle pt-2 text-xs text-ink-muted">
@@ -200,19 +220,6 @@ export default function DeliveryDetail() {
       </div>
     </AppShell>
   );
-}
-
-function statusBadge(s: string): string {
-  switch (s) {
-    case 'Terkirim':
-      return 'bg-ok-soft text-ok';
-    case 'Gagal':
-      return 'bg-alert-soft text-alert';
-    case 'Dalam_Pengiriman':
-      return 'bg-info-soft text-info';
-    default:
-      return 'bg-overlay text-ink-secondary';
-  }
 }
 
 function paymentLabel(s: string | null | undefined): string {

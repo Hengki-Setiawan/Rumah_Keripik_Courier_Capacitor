@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { toast } from '@/stores/toast-store';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 
 export interface IncomingOffer {
   deliveryId?: number | string;
@@ -28,15 +30,21 @@ export const useOfferStore = create<OfferState>((set, get) => ({
     const offer = get().offer;
     if (!offer?.assignmentId || get().busy) return;
     set({ busy: true, error: null });
+    const optimistic = { ...offer };
+    set({ offer: null });
     try {
       const { apiRequest } = await import('@/lib/api-client');
       await apiRequest('/api/courier/offers/respond', {
         method: 'POST',
         body: { assignmentId: offer.assignmentId, action },
       });
-      set({ offer: null, busy: false });
+      set({ busy: false });
+      await hapticImpact(action === 'accept' ? 'medium' : 'light');
+      toast.success(action === 'accept' ? 'Tawaran diterima' : 'Tawaran ditolak');
     } catch (e) {
-      set({ busy: false, error: e instanceof Error ? e.message : 'Gagal merespons tawaran' });
+      set({ offer: optimistic, busy: false, error: e instanceof Error ? e.message : 'Gagal merespons tawaran' });
+      await hapticNotification('error');
+      toast.error('Gagal merespons tawaran — coba lagi');
     }
   },
 

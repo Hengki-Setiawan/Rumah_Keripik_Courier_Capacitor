@@ -9,6 +9,7 @@ import { hapticVibrate, hapticNotification } from '@/lib/haptics';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { getCurrentPosition } from '@/lib/location';
+import { toast } from '@/stores/toast-store';
 
 const SOS_REASONS = ['Kecelakaan', 'Kendaraan Mogok', 'Darurat Medis', 'Terlambat', 'Lainnya'];
 const HOLD_MS = 800;
@@ -49,9 +50,11 @@ export default function SOS() {
     try {
       await apiRequest('/api/courier/sos', { method: 'POST', body: JSON.stringify(payload) });
       setSent(true);
+      toast.success('Laporan SOS terkirim');
     } catch {
       await enqueueAction({ entityType: 'sos', entityId: Date.now().toString(), action: 'report', payload: payload as unknown as Record<string, unknown> });
       setSent(true);
+      toast.warning('Offline — laporan disimpan & dikirim otomatis');
     } finally {
       setSending(false);
     }
