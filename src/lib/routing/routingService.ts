@@ -104,6 +104,21 @@ export function buildRouteFingerprint(stops: RouteWaypoint[]): string {
     .join('|');
 }
 
+/**
+ * Query key stabil untuk React Query. Hanya deliveryId — KOORDINAT DIKECUALIKAN.
+ * buildRouteFingerprint (cache internal) ikut koordinat supaya cache invalid
+ * saat stop digeser (mis. ORS snap ke jalan), tapi query key harus STABIL agar
+ * setQueryData() dari reroute-to-stop selalu menimpa data yang diamati hook.
+ * (Regresi 65d6116: snap mengubah koordinat orderedStops -> fingerprint berbeda ->
+ *  reroute menulis ke key yang tidak diamati UI -> "tidak bisa hitung ulang rute".)
+ */
+export function buildRouteQueryKey(stops: RouteWaypoint[]): string {
+  return stops
+    .map((s) => String(s.deliveryId))
+    .sort()
+    .join('|');
+}
+
 function buildCacheKey(stops: RouteWaypoint[]): string {
   return buildRouteFingerprint(stops);
 }

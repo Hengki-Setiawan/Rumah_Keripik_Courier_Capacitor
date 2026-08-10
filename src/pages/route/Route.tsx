@@ -15,7 +15,7 @@ import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
 import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
 import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
-import { buildRouteFingerprint } from '@/lib/routing/routingService';
+import { buildRouteQueryKey } from '@/lib/routing/routingService';
 import { haversineMeters } from '@/lib/routing/distance';
 import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
@@ -85,7 +85,7 @@ export default function Route() {
           durationSeconds: 0,
         };
       }
-      const key = ['route', 'optimized', buildRouteFingerprint(r.orderedStops)] as const;
+      const key = ['route', 'optimized', buildRouteQueryKey(r.orderedStops)] as const;
       queryClient.setQueryData<OptimizedRoute>(key, (old) => {
         if (!old) return old;
         const legs = old.legs.map((l, i) => (i === idx ? leg : l));
