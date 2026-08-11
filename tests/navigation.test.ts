@@ -93,6 +93,15 @@ describe('findUpcomingStep', () => {
     expect(upcoming!.distanceM).toBeCloseTo(55597, -2);
   });
 
+  it('skips the depart step at the route start (tidak langsung tiba)', () => {
+    // Posisi kurir tepat di titik awal: dulu findUpcomingStep mengembalikan step
+    // 'depart' (jarak ~0m) yang membuat HUD/suara mendeteksi sudah tiba langsung.
+    const upcoming = findUpcomingStep(leg, { lat: -1, lng: 0 });
+    expect(upcoming).not.toBeNull();
+    expect(upcoming!.step.modifier).not.toBe('depart');
+    expect(upcoming!.step.modifier).toBe('left');
+  });
+
   it('returns null when the leg has no steps', () => {
     const noSteps: RouteLegGeometry = { coordinates: LINE, distanceMeters: 222390, durationSeconds: 1200 };
     expect(findUpcomingStep(noSteps, { lat: 0, lng: 0 })).toBeNull();

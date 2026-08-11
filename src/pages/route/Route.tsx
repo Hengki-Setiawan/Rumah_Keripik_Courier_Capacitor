@@ -13,6 +13,7 @@ import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
+import { useVoiceGuidance } from '@/lib/routing/useVoiceGuidance';
 import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
 import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
 import { buildRouteQueryKey } from '@/lib/routing/routingService';
@@ -38,6 +39,15 @@ export default function Route() {
   const activeStop = route?.orderedStops[activeStopIndex];
   const activeLat = activeStop?.lat;
   const activeLng = activeStop?.lng;
+
+  // Voice guidance saat navigasi aktif (suara instruksi + keep-awake layar).
+  useVoiceGuidance({
+    leg: route?.legs[activeStopIndex] ?? null,
+    position: tracking.position,
+    navigationMode,
+    offRoute: tracking.offRoute,
+    destinationName: activeStop?.customerName,
+  });
 
   function handleStopMarkerPress(deliveryId: string) {
     const idx = route?.orderedStops.findIndex((s) => s.deliveryId === deliveryId) ?? -1;

@@ -107,6 +107,9 @@ export function findUpcomingStep(leg: RouteLegGeometry, pos: LatLng): UpcomingSt
   const cumulative = cumulativeDistances(leg.coordinates);
   let best: UpcomingStep | null = null;
   for (const step of leg.steps) {
+    // 'depart' berada di titik awal rute (~0m dari kurir). Lewati agar HUD/suara
+    // menunjuk ke manuver asli pertama, bukan "Mulai perjalanan" yang selalu dekat.
+    if (step.modifier === 'depart') continue;
     const idx = indexOfNearestVertex(leg.coordinates, step.location);
     const remaining = cumulative[idx] - snap.distanceAlongM;
     if (remaining < -30) continue; // manuver sudah terlewati

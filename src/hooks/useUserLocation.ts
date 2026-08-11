@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isNative } from '@/lib/env';
+import { subscribeLocationFeed } from '@/lib/background-location';
 import { haversineKm, type TrackedLocation } from '@/lib/location';
 
 /** Abaikan fix dengan akurasi lebih buruk dari ini (indoor/satelit hilang). */
@@ -39,6 +40,13 @@ export function useUserLocation(enabled = true): TrackedLocation | null {
       setLoc(last);
     }
 
+    // Feed dari background watcher (foreground service): saat app di-background
+    // atau layar mati, watchPosition biasa bisa melambat/macet tapi background
+    // watcher tetap hidup - teruskan posisinya agar navigasi+suara tidak terputus.
+    const unsubscribeFeed = subscribeLocationFeed((loc) => {
+      if (loc && active) acceptGPS(loc.lat, loc.lng, loc.accuracy, loc.speed, loc.timestamp);
+    });
+
     async function start() {
       if (isNative) {
         try {
@@ -76,6 +84,7 @@ export function useUserLocation(enabled = true): TrackedLocation | null {
       if (webWatchId !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
         navigator.geolocation.clearWatch(webWatchId);
       }
+      unsubscribeFeed();
     };
   }, [enabled]);
 

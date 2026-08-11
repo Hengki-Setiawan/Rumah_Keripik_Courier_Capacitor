@@ -27,6 +27,16 @@ let watcherId: string | null = null;
 let syncTimer: ReturnType<typeof setInterval> | null = null;
 let webWatchId: number | null = null;
 
+// Feed posisi live ke konsumen React (navigasi). Background watcher tetap aktif
+// saat app di-background, sehingga navigasi+suara jalan terus meski keluar app.
+type LocationFeedListener = (loc: TrackedLocation) => void;
+const locationFeedListeners = new Set<LocationFeedListener>();
+
+export function subscribeLocationFeed(listener: LocationFeedListener): () => void {
+  locationFeedListeners.add(listener);
+  return () => { locationFeedListeners.delete(listener); };
+}
+
 function toTrackedLocation(loc: Location): TrackedLocation {
   return {
     lat: loc.latitude,
@@ -38,6 +48,10 @@ function toTrackedLocation(loc: Location): TrackedLocation {
 }
 
 function handleLocation(loc: TrackedLocation): void {
+  // Teruskan ke konsumen live (state navigasi) - dijalankan apa adanya.
+  for (const listener of locationFeedListeners) {
+    try { listener(loc); } catch { }
+  }
   void (async () => {
     try {
       const db = await getDb();

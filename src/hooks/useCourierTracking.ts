@@ -44,6 +44,16 @@ export function useCourierTracking(
     const from = position ?? raw;
     tweenRef.current = { from, to: raw, startedAt: performance.now() };
 
+    // Saat app di-background rAF berhenti berjalan; langsung lompat ke posisi
+    // target agar navigasi+suara tetap update (tween hanya untuk foreground).
+    const isHidden = typeof document !== 'undefined' && document.hidden;
+    if (isHidden) {
+      setPosition(raw);
+      prevRef.current = raw;
+      tweenRef.current = null;
+      return;
+    }
+
     if (raw.speed != null && raw.speed > 0.5) {
       const dist = haversineMeters(from, raw);
       if (dist > 1.5) setBearing(bearingDegrees(from, raw));
@@ -63,7 +73,8 @@ export function useCourierTracking(
         return;
       }
       const t = (performance.now() - tween.startedAt) / TWEEN_MS;
-      if (t >= 1) {
+      const stillHidden = typeof document !== 'undefined' && document.hidden;
+      if (t >= 1 || stillHidden) {
         setPosition(tween.to);
         prevRef.current = tween.to;
         tweenRef.current = null;

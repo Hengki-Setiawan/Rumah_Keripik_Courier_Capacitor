@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { ArrowUp, MapPin, RotateCw } from 'lucide-react';
+import { ArrowUp, MapPin, RotateCw, Volume2, VolumeX } from 'lucide-react';
 import type { LatLng, RouteLegGeometry } from '@/lib/routing/types';
-import { findUpcomingStep, formatMeters, maneuverToDisplay } from '@/lib/routing/navigation';
+import { findUpcomingStep, formatMeters, maneuverToDisplay, remainingDistanceToEndM } from '@/lib/routing/navigation';
+import { haversineMeters } from '@/lib/routing/distance';
 import { hapticImpact, hapticVibrate } from '@/lib/haptics';
+import { useVoiceGuideStore } from '@/stores/voice-guide-store';
 import { cn } from '@/lib/cn';
 
 interface TurnByTurnHudProps {
@@ -20,6 +22,8 @@ const VIBRATE_AT_M = 120;
 export function TurnByTurnHud({ leg, position, className }: TurnByTurnHudProps) {
   const upcoming = leg && position ? findUpcomingStep(leg, position) : null;
   const vibratedStepRef = useRef<number | null>(null);
+  const muted = useVoiceGuideStore((s) => s.muted);
+  const toggleMuted = useVoiceGuideStore((s) => s.toggleMuted);
 
   useEffect(() => {
     if (!upcoming) return;
@@ -39,7 +43,10 @@ export function TurnByTurnHud({ leg, position, className }: TurnByTurnHudProps) 
   if (!upcoming) return null;
 
   const display = maneuverToDisplay(upcoming.step.modifier);
-  const arrived = upcoming.step.modifier === 'arrive' || upcoming.distanceM < 25;
+  const remainingToEnd = leg && position ? remainingDistanceToEndM(leg, position) : null;
+  const endCoord = leg?.coordinates?.[leg.coordinates.length - 1];
+  const physicalToEndM = leg && position && endCoord ? haversineMeters(position, { lat: endCoord[0], lng: endCoord[1] }) : null;
+  const arrived = upcoming.step.modifier === 'arrive' || (remainingToEnd !== null && remainingToEnd < 30) || (physicalToEndM !== null && physicalToEndM < 40);
   const Icon = arrived ? MapPin : display.rotationDeg === 180 ? RotateCw : ArrowUp;
 
   return (
@@ -61,6 +68,14 @@ export function TurnByTurnHud({ leg, position, className }: TurnByTurnHudProps) 
           {arrived ? 'Sebentar lagi tiba' : `${display.label} dalam ${formatMeters(upcoming.distanceM)}`}
         </p>
       </div>
+      <button
+        type="button"
+        onClick={() => void toggleMuted()}
+        aria-label={muted ? 'Aktifkan suara' : 'Bisukan suara'}
+        className="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink-secondary transition-colors active:bg-ink/10"
+      >
+        {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+      </button>
     </div>
   );
 }

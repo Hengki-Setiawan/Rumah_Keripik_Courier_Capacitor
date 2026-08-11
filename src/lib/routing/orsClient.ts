@@ -58,6 +58,7 @@ export async function fetchDirectionsGeometry(
       coordinates: [[from.lng, from.lat], [to.lng, to.lat]],
       instructions: true,
       maneuvers: true,
+      language: 'id',
     }),
   });
   if (!res.ok) throw new Error(`ORS directions error: ${res.status}`);

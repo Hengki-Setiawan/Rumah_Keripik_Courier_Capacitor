@@ -9,6 +9,9 @@ export const STORAGE_KEYS = {
   pinCode: 'rk.pin_code',
   themeMode: 'rk.theme_mode',
   lastActiveShift: 'rk.last_active_shift',
+  voiceMuted: 'rk.voice_muted',
+  voiceEnabled: 'rk.voice_enabled',
+  voiceRate: 'rk.voice_rate',
 } as const;
 
 // Kunci yang berisi data sensitif (token sesi) — disimpan terenkripsi
