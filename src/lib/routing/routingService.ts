@@ -3,7 +3,7 @@ import { optimizeWithOrs, fetchDirectionsGeometry, fetchDistanceMatrix, snapStop
 import { fetchOsrmRoute } from './osrmClient';
 import { haversineMeters } from './distance';
 import { getCachedRoute, setCachedRoute } from './routeCache';
-import { WAREHOUSE, type RouteWaypoint, type OptimizedRoute, type RouteLegGeometry } from './types';
+import { WAREHOUSE, type LatLng, type RouteWaypoint, type OptimizedRoute, type RouteLegGeometry } from './types';
 
 const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY as string | undefined;
 
@@ -49,8 +49,8 @@ function toLatLng(w: RouteWaypoint): { lat: number; lng: number } {
   return { lat: w.lat, lng: w.lng };
 }
 
-async function fetchLegsConcurrently(orderedStops: RouteWaypoint[]): Promise<RouteLegGeometry[]> {
-  const points = [WAREHOUSE, ...orderedStops.map(toLatLng)];
+async function fetchLegsConcurrently(orderedStops: RouteWaypoint[], depot: LatLng): Promise<RouteLegGeometry[]> {
+  const points = [depot, ...orderedStops.map(toLatLng)];
   const legPairs: Array<[typeof points[number], typeof points[number]]> = [];
   for (let i = 0; i < points.length - 1; i++) {
     legPairs.push([points[i], points[i + 1]]);
@@ -88,8 +88,8 @@ function straightLineLeg(a: { lat: number; lng: number }, b: { lat: number; lng:
   };
 }
 
-function straightLineLegs(orderedStops: RouteWaypoint[]): RouteLegGeometry[] {
-  const points = [WAREHOUSE, ...orderedStops.map(toLatLng)];
+function straightLineLegs(orderedStops: RouteWaypoint[], depot: LatLng): RouteLegGeometry[] {
+  const points = [depot, ...orderedStops.map(toLatLng)];
   const legs: RouteLegGeometry[] = [];
   for (let i = 0; i < points.length - 1; i++) {
     legs.push(straightLineLeg(points[i], points[i + 1]));
@@ -119,6 +119,21 @@ export function buildRouteQueryKey(stops: RouteWaypoint[]): string {
     .join('|');
 }
 
+/**
+ * Query key lengkap rute teroptimasi. Berisi (1) deliveryId terurut, (2) depot
+ * (gudang vs posisi kurir saat re-optimize, dibulatkan agar stabil), dan
+ * (3) forceKey (bump saat user tekan "Optimalkan" manual). Key berubah =
+ * React Query fetch ulang, jadi re-optimize dari GPS cukup ganti depot di sini.
+ */
+export function buildOptimizedRouteQueryKey(
+  stops: RouteWaypoint[],
+  depot?: LatLng,
+  forceKey = 0,
+): readonly ['route', 'optimized', string, string, number] {
+  const depotStr = depot ? `${depot.lat.toFixed(5)},${depot.lng.toFixed(5)}` : 'warehouse';
+  return ['route', 'optimized', buildRouteQueryKey(stops), depotStr, forceKey];
+}
+
 function buildCacheKey(stops: RouteWaypoint[]): string {
   return buildRouteFingerprint(stops);
 }
@@ -131,9 +146,10 @@ function buildCacheKey(stops: RouteWaypoint[]): string {
 async function improveOrderWithRoadMatrix(
   orderedStops: RouteWaypoint[],
   apiKey: string,
+  depot: LatLng,
 ): Promise<RouteWaypoint[] | null> {
   if (orderedStops.length < 2) return null;
-  const points = [WAREHOUSE, ...orderedStops.map(toLatLng)];
+  const points = [depot, ...orderedStops.map(toLatLng)];
   try {
     const { distances } = await fetchDistanceMatrix(points, apiKey);
     if (!distances || distances.length !== points.length) return null;
@@ -150,11 +166,14 @@ async function improveOrderWithRoadMatrix(
 
 export async function buildOptimizedRoute(
   stops: RouteWaypoint[],
-  opts: { forceOffline?: boolean } = {},
+  opts: { forceOffline?: boolean; depot?: LatLng } = {},
 ): Promise<OptimizedRoute> {
   if (stops.length === 0) {
     return { orderedStops: [], legs: [], totalDistanceMeters: 0, totalDurationSeconds: 0, source: 'local-heuristic' };
   }
+
+  // Depot dinamis: default gudang, tapi saat re-optimize memakai posisi GPS kurir.
+  const depot = opts.depot ?? WAREHOUSE;
 
   const cacheKey = buildCacheKey(stops);
   const cached = await getCachedRoute(cacheKey);
@@ -183,12 +202,12 @@ export async function buildOptimizedRoute(
   // 1) Jalur terbaik: ORS optimization (online + API key)
   if (!opts.forceOffline && online && ORS_API_KEY) {
     try {
-      const optimized = await optimizeWithOrs(WAREHOUSE, snappedStops, ORS_API_KEY);
+      const optimized = await optimizeWithOrs(depot, snappedStops, ORS_API_KEY);
       const orderedStops = optimized.orderedDeliveryIds
         .map((id) => snappedStops.find((s) => s.deliveryId === id))
         .filter((s): s is RouteWaypoint => !!s);
 
-      const legs = await fetchLegsConcurrently(orderedStops);
+      const legs = await fetchLegsConcurrently(orderedStops, depot);
       const result: OptimizedRoute = {
         orderedStops,
         legs,
@@ -204,13 +223,13 @@ export async function buildOptimizedRoute(
   }
 
   // 2) Fallback: heuristik lokal (offline-safe)
-  const localResult = optimizeStopOrder(WAREHOUSE, snappedStops.map(toLatLng));
+  const localResult = optimizeStopOrder(depot, snappedStops.map(toLatLng));
   let orderedStops = localResult.orderIndices.slice(1).map((idx) => snappedStops[idx - 1]);
 
   // 2b) Upgrade: perbaiki urutan dengan matriks jarak jalan asli (ORS Matrix) saat online
   let usedRoadMatrix = false;
   if (online && ORS_API_KEY) {
-    const improved = await improveOrderWithRoadMatrix(orderedStops, ORS_API_KEY);
+    const improved = await improveOrderWithRoadMatrix(orderedStops, ORS_API_KEY, depot);
     if (improved) {
       orderedStops = improved;
       usedRoadMatrix = true;
@@ -223,16 +242,16 @@ export async function buildOptimizedRoute(
   try {
     if (online) {
       debugLog('Fetching OSRM legs for', orderedStops.length, 'stops');
-      legs = await fetchLegsConcurrently(orderedStops);
+      legs = await fetchLegsConcurrently(orderedStops, depot);
       source = usedRoadMatrix ? 'ors-directions' : 'local-heuristic';
       debugLog('OSRM legs fetched, total coords:', legs.reduce((n, l) => n + l.coordinates.length, 0));
     } else {
       debugLog('Offline - using straight-line legs');
-      legs = straightLineLegs(orderedStops);
+      legs = straightLineLegs(orderedStops, depot);
     }
   } catch (e) {
     console.error('[routingService] fetchLegsConcurrently error:', e);
-    legs = straightLineLegs(orderedStops);
+    legs = straightLineLegs(orderedStops, depot);
   }
 
   const result: OptimizedRoute = {

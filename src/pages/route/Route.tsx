@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Bell, Crosshair, LocateFixed, Route as RouteIcon } from 'lucide-react';
@@ -10,15 +10,15 @@ import { FAB } from '@/components/ui/FAB';
 import { Button } from '@/components/ui/Button';
 import { openExternalNavigation } from '@/lib/openMaps';
 import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
+import { useTodayDeliveries } from '@/hooks/use-deliveries';
 import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
 import { useVoiceGuidance } from '@/lib/routing/useVoiceGuidance';
 import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
 import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
-import { buildRouteQueryKey } from '@/lib/routing/routingService';
 import { haversineMeters } from '@/lib/routing/distance';
-import { WAREHOUSE, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
+import { WAREHOUSE, type LatLng, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
 import { hapticImpact } from '@/lib/haptics';
 import type { SnapPoint } from '@/components/ui/BottomSheet';
@@ -26,15 +26,65 @@ import type { SnapPoint } from '@/components/ui/BottomSheet';
 export default function Route() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data: route, isLoading, refetch, isFetching } = useOptimizedRoute();
   const rawLocation = useUserLocation();
   const [snap, setSnap] = useState<SnapPoint>('peek');
-  const [activeStopIndex, setActiveStopIndex] = useState(0);
+
+  // ----- Re-optimisasi dinamis dari posisi kurir (blueprint §4.6) -----
+  // depotOverride: null = rute awal dari gudang; diisi posisi GPS saat
+  // trigger re-optimize (stop selesai/gagal atau tombol "Optimalkan").
+  // forceKey: bump setiap trigger manual supaya fetch ulang walau depot sama.
+  const [depotOverride, setDepotOverride] = useState<LatLng | null>(null);
+  const [forceKey, setForceKey] = useState(0);
+
+  const { data: deliveries } = useTodayDeliveries();
+  const completedIds = useMemo(
+    () =>
+      (deliveries ?? [])
+        .filter((d) => d.status === 'Terkirim' || d.status === 'Gagal')
+        .map((d) => String(d.id)),
+    [deliveries],
+  );
+
+  const { data: route, isLoading, isFetching, queryKey } = useOptimizedRoute({
+    depot: depotOverride,
+    excludeIds: completedIds,
+    forceKey,
+  });
+
+  // Target aktif dilock by deliveryId (bukan index) agar re-optimize yang mengubah
+  // urutan/renumbering tidak membuat target melompat ke stop lain.
+  const [activeStopId, setActiveStopId] = useState<string | null>(null);
+  const activeStopIndex = useMemo(() => {
+    if (!route || route.orderedStops.length === 0) return 0;
+    const idx = activeStopId ? route.orderedStops.findIndex((s) => s.deliveryId === activeStopId) : 0;
+    return idx >= 0 ? idx : 0;
+  }, [route, activeStopId]);
+
+  // Saat rute berubah (mis. stop selesai di-drop + urutan dire-optimize), jaga
+  // activeStopId tetap valid: kalau target hilang, lanjut ke stop pertama tersisa.
+  useEffect(() => {
+    if (!route || route.orderedStops.length === 0) return;
+    const found = activeStopId ? route.orderedStops.some((s) => s.deliveryId === activeStopId) : false;
+    if (!found) setActiveStopId(route.orderedStops[0].deliveryId);
+  }, [route, activeStopId]);
+
   const [navigationMode, setNavigationMode] = useState(false);
   const [showAllRoutes, setShowAllRoutes] = useState(false);
   const [mapBump, setMapBump] = useState(0);
   const tracking = useCourierTracking(rawLocation, route ?? null);
   const snappedLocation = useRoadMatchedLocation(rawLocation, route ?? null, activeStopIndex, tracking.offRoute);
+
+  // Auto re-optimize: begitu ada stop yang baru selesai/gagal (set id berubah),
+  // hitung ulang rute sisa dari posisi kurir saat ini. Sekali per perubahan set.
+  const lastDoneKeyRef = useRef('');
+  const doneKey = completedIds.slice().sort().join('|');
+  useEffect(() => {
+    if (!tracking.position) return;
+    if (doneKey === lastDoneKeyRef.current) return;
+    lastDoneKeyRef.current = doneKey;
+    setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
+    setForceKey((k) => k + 1);
+  }, [doneKey, tracking.position]);
 
   const activeStop = route?.orderedStops[activeStopIndex];
   const activeLat = activeStop?.lat;
@@ -52,7 +102,7 @@ export default function Route() {
   function handleStopMarkerPress(deliveryId: string) {
     const idx = route?.orderedStops.findIndex((s) => s.deliveryId === deliveryId) ?? -1;
     if (idx >= 0) {
-      setActiveStopIndex(idx);
+      setActiveStopId(deliveryId);
       if (!navigationMode && snap === 'peek') setSnap('half');
       // Saat sedang navigasi: hitung ulang rute dari POSISI KURIR ke stop baru,
       // bukan memakai segmen tur lama (mis. stop1→stop2) antar-titik.
@@ -96,7 +146,7 @@ export default function Route() {
           durationSeconds: 0,
         };
       }
-      const key = ['route', 'optimized', buildRouteQueryKey(r.orderedStops)] as const;
+      const key = queryKey;
       queryClient.setQueryData<OptimizedRoute>(key, (old) => {
         if (!old) return old;
         const legs = old.legs.map((l, i) => (i === idx ? leg : l));
@@ -109,7 +159,7 @@ export default function Route() {
       });
       toast.success('Rute dihitung ulang dari posisi Anda');
     },
-    [queryClient, tracking.position],
+    [queryClient, tracking.position, queryKey],
   );
 
   // Flush pending reroute: begitu GPS pertama tersedia, hitung ulang rute ke target
@@ -259,9 +309,23 @@ export default function Route() {
           optimizing={isFetching}
           snap={snap}
           onSnapChange={setSnap}
-          onOptimize={() => { setMapBump((b) => b + 1); refetch(); }}
+          onOptimize={() => {
+            setMapBump((b) => b + 1);
+            setForceKey((k) => k + 1);
+            if (tracking.position) {
+              setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
+              toast.success('Rute dioptimalkan ulang dari posisi Anda');
+            } else {
+              setDepotOverride(null);
+              toast.warning('Posisi GPS belum tersedia — optimalkan dari gudang');
+            }
+          }}
           activeStopIndex={activeStopIndex}
-          onSelectStop={(i) => { setActiveStopIndex(i); if (snap === 'peek') setSnap('half'); }}
+          onSelectStop={(i) => {
+            const s = route?.orderedStops[i];
+            if (s) setActiveStopId(s.deliveryId);
+            if (snap === 'peek') setSnap('half');
+          }}
           onStartNavigation={() => {
             void hapticImpact('medium');
             setNavigationMode(true);

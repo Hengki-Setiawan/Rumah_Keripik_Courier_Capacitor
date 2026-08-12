@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, CreditCard } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useDeliveryDetail } from '@/hooks/use-deliveries';
+import { useDeliveryDetail, invalidateDeliveries } from '@/hooks/use-deliveries';
 import { useDeliveryStore } from '@/stores/delivery-store';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
@@ -17,6 +18,7 @@ import { toast } from '@/stores/toast-store';
 export default function DeliveryDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const deliveryId = Number(id);
   const { data: delivery, isLoading } = useDeliveryDetail(deliveryId);
   const updateDeliveryStatus = useDeliveryStore((s) => s.updateDeliveryStatus);
@@ -42,6 +44,7 @@ export default function DeliveryDetail() {
     try {
       await apiRequest(`/api/courier/deliveries/${deliveryId}/${status}`, { method: 'POST' });
       updateDeliveryStatus(deliveryId, status === 'start' ? 'Dalam_Pengiriman' : status === 'complete' ? 'Terkirim' : 'Dalam_Pengiriman');
+      invalidateDeliveries(queryClient);
       await hapticImpact(status === 'complete' ? 'heavy' : 'light');
       if (status === 'start' || status === 'arrived') {
         navigate(`/delivery/${deliveryId}/proof`);
@@ -58,6 +61,7 @@ export default function DeliveryDetail() {
         payload: { deliveryId },
       });
       updateDeliveryStatus(deliveryId, status === 'start' ? 'Dalam_Pengiriman' : status === 'complete' ? 'Terkirim' : 'Dalam_Pengiriman');
+      invalidateDeliveries(queryClient);
       if (status === 'start' || status === 'arrived') {
         navigate(`/delivery/${deliveryId}/proof`);
       } else {
