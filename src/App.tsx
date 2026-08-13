@@ -30,7 +30,8 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
     },
   },
 });
@@ -110,6 +111,28 @@ function OnlineDetector() {
   return null;
 }
 
+function ForegroundRefresher() {
+  // Saat app dikembalikan dari background ke foreground, segarkan semua data
+  // (pesanan, statistik, pendapatan) supaya tidak tampak "stuck"/usang.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let removed = false;
+    const h = CapApp.addListener('appStateChange', (state) => {
+      if (state.isActive) {
+        void queryClient.invalidateQueries();
+      }
+    });
+    h.then((listener) => {
+      if (removed) listener.remove();
+    });
+    return () => {
+      removed = true;
+      h.then((listener) => listener.remove());
+    };
+  }, []);
+  return null;
+}
+
 export default function App() {
   const bootstrap = useAuthStore((s) => s.bootstrap);
 
@@ -122,6 +145,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <OnlineDetector />
+      <ForegroundRefresher />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

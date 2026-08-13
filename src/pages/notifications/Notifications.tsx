@@ -49,7 +49,11 @@ export default function Notifications() {
   const unread = data?.unreadCount ?? 0;
 
   return (
-    <AppShell title="Notifikasi" onBack={() => navigate(-1)}>
+    <AppShell
+      title="Notifikasi"
+      onBack={() => navigate(-1)}
+      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['notifications'] })}
+    >
       <div className="flex items-center justify-between pb-2">
         <p className="text-xs text-ink-muted">{unread > 0 ? `${unread} belum dibaca` : 'Semua sudah dibaca'}</p>
         {unread > 0 && (

@@ -1,14 +1,14 @@
 import { useNavigate } from 'react-router-dom';
-import { Package, MapPin, Clock3, CheckCircle2, Wallet, TimerReset, Navigation, Siren, ChevronRight } from 'lucide-react';
+import { Package, MapPin, Clock3, CheckCircle2, Wallet, TimerReset, Navigation, Siren, ChevronRight, RefreshCw } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
 import { IconBadge } from '@/components/ui/IconBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useTodayDeliveries, invalidateDeliveries } from '@/hooks/use-deliveries';
-import { useStats } from '@/hooks/use-stats';
-import { useEarnings } from '@/hooks/use-earnings';
+import { useTodayDeliveries, invalidateDeliveries, deliveriesKeys } from '@/hooks/use-deliveries';
+import { useStats, statsKeys } from '@/hooks/use-stats';
+import { useEarnings, earningsKeys } from '@/hooks/use-earnings';
 import { useAuthStore } from '@/stores/auth-store';
 import { formatCurrency, formatTime } from '@/lib/format';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,7 +17,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const courier = useAuthStore((s) => s.courier);
-  const { data: deliveries, isLoading } = useTodayDeliveries();
+  const { data: deliveries, isLoading, isError } = useTodayDeliveries();
   const { data: stats } = useStats('week');
   const { data: earnings } = useEarnings('weekly');
 
@@ -28,6 +28,9 @@ export default function Dashboard() {
 
   function refresh() {
     invalidateDeliveries(queryClient);
+    queryClient.invalidateQueries({ queryKey: statsKeys.me('week') });
+    queryClient.invalidateQueries({ queryKey: earningsKeys.period('weekly') });
+    queryClient.invalidateQueries({ queryKey: deliveriesKeys.all });
   }
 
   return (
@@ -134,6 +137,16 @@ export default function Dashboard() {
             <div aria-busy="true" aria-label="Memuat pengiriman">
               <Skeleton className="h-[76px] w-full rounded-[20px]" />
             </div>
+          ) : isError && !deliveries ? (
+            <Card>
+              <EmptyState
+                icon={<RefreshCw className="size-6" />}
+                title="Gagal memuat pengiriman"
+                description="Koneksi bermasalah. Periksa jaringan lalu tarik ke bawah atau tekan tombol refresh."
+                actionLabel="Coba lagi"
+                onAction={refresh}
+              />
+            </Card>
           ) : !nextUp ? (
             <Card>
               <EmptyState

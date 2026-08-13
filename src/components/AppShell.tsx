@@ -5,6 +5,7 @@ import { useSyncStore } from '@/stores/sync-store';
 import { useNavigate } from 'react-router-dom';
 import { BottomTabBar, type TabKey } from '@/components/ui/BottomTabBar';
 import { SettingsSheet } from '@/components/SettingsSheet';
+import { PullToRefresh } from '@/components/PullToRefresh';
 import { cn } from '@/lib/cn';
 
 interface AppShellProps {
@@ -100,7 +101,15 @@ export function AppShell({ children, title, activeTab, onTabChange, onRefresh, o
         )}
       </header>
 
-      <main className="mx-auto max-w-md px-4 py-4">{children}</main>
+      <main className="mx-auto max-w-md px-4 py-4">
+        {onRefresh ? (
+          <PullToRefresh onRefresh={onRefresh} className="relative">
+            {children}
+          </PullToRefresh>
+        ) : (
+          children
+        )}
+      </main>
 
       {activeTab && onTabChange && <BottomTabBar active={activeTab} onChange={onTabChange} />}
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />

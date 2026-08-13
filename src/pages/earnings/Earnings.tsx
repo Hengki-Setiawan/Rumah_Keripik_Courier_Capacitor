@@ -9,7 +9,7 @@ import { Sparkline } from '@/components/ui/Sparkline';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { apiRequest } from '@/lib/api-client';
 import { formatCurrency, formatDateTime } from '@/lib/format';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { EarningsEntry, EarningsSummary } from '@/lib/types';
 
 interface EarningsResponse {
@@ -25,6 +25,7 @@ async function fetchEarnings(period: string): Promise<EarningsResponse> {
 
 export default function Earnings() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'daily'>('weekly');
   const { data, isLoading } = useQuery({
     queryKey: ['earnings', period],
@@ -47,7 +48,11 @@ export default function Earnings() {
   }, [entries]);
 
   return (
-    <AppShell title="Pendapatan" onBack={() => navigate(-1)}>
+    <AppShell
+      title="Pendapatan"
+      onBack={() => navigate(-1)}
+      onRefresh={() => queryClient.invalidateQueries({ queryKey: ['earnings', period] })}
+    >
       <div className="flex gap-2 pb-2">
         <FilterPill label="Harian" active={period === 'daily'} onClick={() => setPeriod('daily')} />
         <FilterPill label="7 Hari" active={period === 'weekly'} onClick={() => setPeriod('weekly')} />

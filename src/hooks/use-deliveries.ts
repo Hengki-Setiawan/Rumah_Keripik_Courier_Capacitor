@@ -39,14 +39,29 @@ export function useTodayDeliveries() {
           cacheDeliveries(data);
           return data;
         } catch {
-          // jaring jatuh di tengah request -> fall back ke cache lokal
+          // jaring jatuh di tengah request -> coba cache lokal dulu.
+          // KALAU cache kosong, TIDAK dikembalikan array kosong diam-diam
+          // (itu yang membuat "0 pesanan" palsu) — lempar error supaya UI
+          // menampilkan tombol coba lagi.
+          const db = await getDb();
+          const cached = await db.getCachedDeliveries();
+          if (cached.length > 0) {
+            cacheDeliveries(cached);
+            return cached;
+          }
+          throw new Error('Gagal memuat pesanan. Periksa koneksi lalu coba lagi.');
         }
       }
       const db = await getDb();
       const cached = await db.getCachedDeliveries();
       return cached.length > 0 ? cached : [];
     },
-    staleTime: 60_000,
+    staleTime: 30_000,
+    // Auto-refresh sambil online supaya pesanan baru muncul tanpa harus
+    // tutup/buka ulang aplikasi (bug lama "pesanan 0 padahal ada").
+    refetchInterval: isOnline ? 45_000 : false,
+    refetchOnReconnect: true,
+    retry: isOnline ? 2 : 0,
     placeholderData: () => queryClient.getQueryData<CourierDelivery[]>(deliveriesKeys.today),
   });
 }
