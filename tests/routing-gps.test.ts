@@ -9,11 +9,11 @@ describe('buildOptimizedRouteQueryKey (re-optimize dari posisi GPS kurir)', () =
   ];
   const courierPos: LatLng = { lat: -5.140123456, lng: 119.41876543 };
 
-  it('pakai "warehouse" saat depot kosong (rute awal dari gudang)', () => {
+  it('pakai "courier" (default) saat depot kosong — tidak ada gudang, titik awal dinamis', () => {
     const key = buildOptimizedRouteQueryKey(stops);
     expect(key[0]).toBe('route');
     expect(key[1]).toBe('optimized');
-    expect(key[3]).toBe('warehouse');
+    expect(key[3]).toBe('courier');
     expect(key[4]).toBe(0);
   });
 
@@ -22,10 +22,10 @@ describe('buildOptimizedRouteQueryKey (re-optimize dari posisi GPS kurir)', () =
     expect(key[3]).toBe('-5.14012,119.41877');
   });
 
-  it('depot berbeda (gudang vs GPS) menghasilkan query key berbeda → fetch ulang', () => {
-    const fromWarehouse = buildOptimizedRouteQueryKey(stops);
+  it('depot berbeda (default vs GPS kurir) menghasilkan query key berbeda → fetch ulang', () => {
+    const fromDefault = buildOptimizedRouteQueryKey(stops);
     const fromCourier = buildOptimizedRouteQueryKey(stops, courierPos);
-    expect(fromWarehouse).not.toEqual(fromCourier);
+    expect(fromDefault).not.toEqual(fromCourier);
   });
 
   it('forceKey memaksa key berubah walau depot sama (tombol Optimalkan)', () => {

@@ -4,7 +4,7 @@ import type { LatLng, RouteWaypoint, OptimizedRoute } from '@/lib/routing/types'
 import { useTodayDeliveries } from '@/hooks/use-deliveries';
 
 export interface UseOptimizedRouteOptions {
-  /** Depot rute. null/undefined = gudang (initial). Diisi posisi GPS kurir saat re-optimize. */
+  /** Depot rute = posisi GPS kurir saat ini (tidak pernah gudang). */
   depot?: LatLng | null;
   /** deliveryId yang sudah selesai/gagal — dikeluarkan dari rute sebelum re-optimize. */
   excludeIds?: string[];

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Bell, Crosshair, LocateFixed, Route as RouteIcon } from 'lucide-react';
+import { ArrowLeft, Bell, Crosshair, LocateFixed, MapPin, RefreshCw, Route as RouteIcon, Timer } from 'lucide-react';
 import { RouteMap } from '@/components/ui/RouteMap';
 import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
 import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
@@ -15,10 +15,10 @@ import { useUserLocation } from '@/hooks/useUserLocation';
 import { useCourierTracking } from '@/hooks/useCourierTracking';
 import { useRoadMatchedLocation } from '@/hooks/useRoadMatchedLocation';
 import { useVoiceGuidance } from '@/lib/routing/useVoiceGuidance';
-import { fetchDirectionsGeometry } from '@/lib/routing/orsClient';
+import { fetchDirectionsGeometry, fetchIsochrones, reverseGeocodePoint } from '@/lib/routing/orsClient';
 import { fetchOsrmRoute } from '@/lib/routing/osrmClient';
 import { haversineMeters } from '@/lib/routing/distance';
-import { WAREHOUSE, type LatLng, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
+import { type LatLng, type OptimizedRoute, type RouteLegGeometry } from '@/lib/routing/types';
 import { toast } from '@/stores/toast-store';
 import { hapticImpact } from '@/lib/haptics';
 import type { SnapPoint } from '@/components/ui/BottomSheet';
@@ -30,8 +30,8 @@ export default function Route() {
   const [snap, setSnap] = useState<SnapPoint>('peek');
 
   // ----- Re-optimisasi dinamis dari posisi kurir (blueprint §4.6) -----
-  // depotOverride: null = rute awal dari gudang; diisi posisi GPS saat
-  // trigger re-optimize (stop selesai/gagal atau tombol "Optimalkan").
+  // Tidak ada gudang: depot ALWAYS posisi GPS kurir. depotOverride diisi dari
+  // tracking.position (lihat effect seeding di bagian tracking).
   // forceKey: bump setiap trigger manual supaya fetch ulang walau depot sama.
   const [depotOverride, setDepotOverride] = useState<LatLng | null>(null);
   const [forceKey, setForceKey] = useState(0);
@@ -74,14 +74,95 @@ export default function Route() {
   const tracking = useCourierTracking(rawLocation, route ?? null);
   const snappedLocation = useRoadMatchedLocation(rawLocation, route ?? null, activeStopIndex, tracking.offRoute);
 
-  // Auto re-optimize: begitu ada stop yang baru selesai/gagal (set id berubah),
-  // hitung ulang rute sisa dari posisi kurir saat ini. Sekali per perubahan set.
+  // ----- ORS Isochrones: zona waktu tempuh dari posisi kurir (toggle manual) -----
+  const [showIsochrones, setShowIsochrones] = useState(false);
+  const [isochrones, setIsochrones] = useState<{[rangeSeconds: number]: [number, number][]} | null>(null);
+  const isoRef = useRef<{at: number; lat: number; lng: number} | null>(null);
+  useEffect(() => {
+    if (!showIsochrones) return;
+    const pos = tracking.position;
+    if (!pos) return;
+    const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
+    if (!apiKey) return;
+    const last = isoRef.current;
+    const moved = last
+      ? haversineMeters({ lat: last.lat, lng: last.lng }, { lat: pos.lat, lng: pos.lng })
+      : Infinity;
+    const stale = last ? Date.now() - last.at > 5 * 60_000 : true;
+    if (!last || moved > 300 || stale) {
+      isoRef.current = { at: Date.now(), lat: pos.lat, lng: pos.lng };
+      void fetchIsochrones({ lat: pos.lat, lng: pos.lng }, [300, 600, 1200], apiKey)
+        .then(setIsochrones)
+        .catch(() => setIsochrones(null));
+    }
+  }, [showIsochrones, tracking.position]);
+
+  // ----- Reverse geocode: alamat posisi kurir saat ini (untuk info/keperluan SOS) -----
+  const [courierAddress, setCourierAddress] = useState<string | null>(null);
+  const geoRef = useRef<{at: number; lat: number; lng: number} | null>(null);
+  useEffect(() => {
+    const pos = tracking.position;
+    if (!pos) return;
+    const apiKey = import.meta.env.VITE_ORS_API_KEY as string | undefined;
+    if (!apiKey) return;
+    const last = geoRef.current;
+    const moved = last
+      ? haversineMeters({ lat: last.lat, lng: last.lng }, { lat: pos.lat, lng: pos.lng })
+      : Infinity;
+    if (last && moved <= 200 && Date.now() - last.at < 10 * 60_000) return;
+    geoRef.current = { at: Date.now(), lat: pos.lat, lng: pos.lng };
+    void reverseGeocodePoint(pos.lat, pos.lng, apiKey)
+      .then((label) => setCourierAddress(label))
+      .catch(() => {
+        /* offline/gagal: pertahankan alamat terakhir */
+      });
+  }, [tracking.position]);
+
+  // Seeder depot: tanpa gudang, rute selalu mulai dari posisi kurir. Begitu GPS
+  // pertama tersedia, tetapkan depot = posisi kurir (sekali saja).
+  const seededDepotRef = useRef(false);
+  useEffect(() => {
+    if (seededDepotRef.current) return;
+    if (!tracking.position) return;
+    seededDepotRef.current = true;
+    setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
+  }, [tracking.position]);
+
+  // Auto re-optimize berkala: saat kurir berpindah jauh (>500 m) sejak re-optimize
+  // terakhir, hitung ulang rute dari posisi aktual — tanpa perlu stop selesai.
+  // Interval cek 60 detik; hemat kuota (bukan tiap tick GPS).
+  const lastAutoReoptRef = useRef<{ at: number; lat: number; lng: number } | null>(null);
+  const positionRef = useRef(tracking.position);
+  positionRef.current = tracking.position;
+  useEffect(() => {
+    const id = setInterval(() => {
+      const pos = positionRef.current;
+      if (!pos) return;
+      const last = lastAutoReoptRef.current;
+      const sinceMs = last ? Date.now() - last.at : Infinity;
+      const movedM = last
+        ? haversineMeters({ lat: last.lat, lng: last.lng }, { lat: pos.lat, lng: pos.lng })
+        : Infinity;
+      // Re-optimize jika: belum pernah (>5 menit) ATAU sudah berpindah >500 m
+      // sejak re-optimize terakhir. Maks satu kali per 2 menit.
+      if ((sinceMs > 5 * 60_000 || movedM > 500) && sinceMs > 2 * 60_000) {
+        lastAutoReoptRef.current = { at: Date.now(), lat: pos.lat, lng: pos.lng };
+        setDepotOverride({ lat: pos.lat, lng: pos.lng });
+        setForceKey((k) => k + 1);
+      }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Auto re-optimize saat stop selesai/gagal: hitung ulang rute sisa dari posisi
+  // kurir saat ini, sekali per perubahan set (responsif, bukan nunggu interval).
   const lastDoneKeyRef = useRef('');
   const doneKey = completedIds.slice().sort().join('|');
   useEffect(() => {
     if (!tracking.position) return;
     if (doneKey === lastDoneKeyRef.current) return;
     lastDoneKeyRef.current = doneKey;
+    lastAutoReoptRef.current = { at: Date.now(), lat: tracking.position.lat, lng: tracking.position.lng };
     setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
     setForceKey((k) => k + 1);
   }, [doneKey, tracking.position]);
@@ -194,30 +275,6 @@ export default function Route() {
       rerouteInFlightRef.current = false;
     });
   }, [tracking.offRoute, route, activeStopIndex, rerouteToStop]);
-  // Google Maps style: setelah fix GPS pertama, ganti leg 0 (yang dihitung dari
-  // gudang) dengan rute dari POSISI KURIR saat ini -> stop pertama. Sekali saja.
-  const initialLegReroutedRef = useRef(false);
-  useEffect(() => {
-    if (initialLegReroutedRef.current) return;
-    const r = route;
-    const pos = tracking.position;
-    if (!r || !pos) return;
-    const stop = r.orderedStops[0];
-    if (!stop) return;
-    // Hanya jika courier sudah jauh dari gudang (bukan sedang tes di gudang).
-    if (haversineMeters(pos, { lat: WAREHOUSE.lat, lng: WAREHOUSE.lng }) < 100) return;
-    // Hanya jika leg 0 masih mulai dari gudang (belum pernah di-reroute).
-    const first = r.legs[0]?.coordinates[0];
-    if (!first) return;
-    const legStartsAtWarehouse =
-      Math.abs(first[1] - WAREHOUSE.lat) < 0.0005 && Math.abs(first[0] - WAREHOUSE.lng) < 0.0005;
-    if (!legStartsAtWarehouse) {
-      initialLegReroutedRef.current = true;
-      return;
-    }
-    initialLegReroutedRef.current = true;
-    void rerouteToStop(r, 0);
-  }, [route, tracking.position, rerouteToStop]);
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-surface">
@@ -235,7 +292,18 @@ export default function Route() {
         onFollowModeChange={tracking.setFollowMode}
         navigationMode={navigationMode}
         showAllRoutes={showAllRoutes}
+        isochrones={showIsochrones ? isochrones : null}
       />
+
+      {/* Chip alamat kurir (reverse geocode) — kecil, info posisi saat ini */}
+      {courierAddress && !navigationMode && (
+        <div className="pointer-events-none absolute left-4 right-16 top-[calc(env(safe-area-inset-top,0px)+5.7rem)] z-10 max-w-[70%]">
+          <p className="inline-flex max-w-full items-center gap-1 rounded-full bg-surface/95 px-3 py-1.5 text-[11px] text-ink-secondary shadow-card backdrop-blur">
+            <MapPin className="size-3 shrink-0 text-brand" />
+            <span className="truncate">{courierAddress}</span>
+          </p>
+        </div>
+      )}
 
       {/* Header transparan mengambang */}
       <div className="pointer-events-none absolute top-0 inset-x-0 flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top,0px)+1.375rem)] pb-3 bg-gradient-to-b from-black/30 via-black/15 to-transparent z-20">
@@ -292,12 +360,50 @@ export default function Route() {
           />
         )}
 
+        {!navigationMode && (
+          <FAB
+            icon={<Timer className="size-6" />}
+            ariaLabel="Zona waktu tempuh (isochrones)"
+            variant="overlay"
+            active={showIsochrones}
+            onClick={() => {
+              void hapticImpact('light');
+              setShowIsochrones((v) => {
+                const next = !v;
+                if (!next) setIsochrones(null);
+                return next;
+              });
+            }}
+          />
+        )}
+
         {tracking.position && !navigationMode && (
           <FAB
             icon={<LocateFixed className="size-6" />}
             ariaLabel="Kembali ke posisi saya"
             variant="overlay"
             onClick={() => { void hapticImpact('light'); tracking.setFollowMode(true); }}
+          />
+        )}
+
+        {navigationMode && (
+          <FAB
+            icon={<RefreshCw className="size-6" />}
+            ariaLabel="Hitung ulang rute dari posisi saya"
+            variant="overlay"
+            onClick={() => {
+              void hapticImpact('light');
+              // Reroute leg aktif dari posisi kurir + refresh order sisa (depot baru).
+              if (tracking.position) {
+                setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
+                lastAutoReoptRef.current = { at: Date.now(), lat: tracking.position.lat, lng: tracking.position.lng };
+                setForceKey((k) => k + 1);
+                if (route) void rerouteToStop(route, activeStopIndex);
+                toast.success('Rute dihitung ulang dari posisi Anda');
+              } else {
+                toast.warning('Posisi GPS belum tersedia');
+              }
+            }}
           />
         )}
       </div>
@@ -314,10 +420,11 @@ export default function Route() {
             setForceKey((k) => k + 1);
             if (tracking.position) {
               setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
+              lastAutoReoptRef.current = { at: Date.now(), lat: tracking.position.lat, lng: tracking.position.lng };
               toast.success('Rute dioptimalkan ulang dari posisi Anda');
             } else {
               setDepotOverride(null);
-              toast.warning('Posisi GPS belum tersedia — optimalkan dari gudang');
+              toast.warning('Posisi GPS belum tersedia');
             }
           }}
           activeStopIndex={activeStopIndex}

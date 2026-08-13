@@ -3,7 +3,7 @@ import Map, { Source, Layer, Marker, type MapRef } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { TriangleAlert, Navigation } from 'lucide-react';
 import { MAP_STYLE_LIGHT } from '@/lib/map/tileStyle';
-import { WAREHOUSE } from '@/lib/routing/types';
+import { MAKASSAR_CENTER } from '@/lib/routing/types';
 import { globalTokens } from '@/tokens/global';
 import { openExternalNavigation } from '@/lib/openMaps';
 import type { OptimizedRoute, RouteWaypoint } from '@/lib/routing/types';
@@ -32,6 +32,8 @@ interface RouteMapProps {
   onFollowModeChange?: (on: boolean) => void;
   navigationMode?: boolean;
   showAllRoutes?: boolean;
+  /** Isochrones zona waktu tempuh (detik -> polygon) dari posisi kurir. */
+  isochrones?: {[rangeSeconds: number]: [number, number][]} | null;
 }
 
 /** Posisi marker setelah spread (jika koordinat berdekatan) — memakai tipe waypoint. */
@@ -170,6 +172,7 @@ export function RouteMap({
   onFollowModeChange,
   navigationMode = false,
   showAllRoutes = false,
+  isochrones = null,
 }: RouteMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const webglSupported = useMemo(() => supportsWebGL(), []);
@@ -255,7 +258,7 @@ export function RouteMap({
       <Map
         ref={mapRef}
         mapStyle={MAP_STYLE_LIGHT}
-        initialViewState={{ longitude: WAREHOUSE.lng, latitude: WAREHOUSE.lat, zoom: 12 }}
+        initialViewState={{ longitude: MAKASSAR_CENTER.lng, latitude: MAKASSAR_CENTER.lat, zoom: 12 }}
         style={{ width: '100%', height: '100%' }}
         attributionControl={{ compact: true }}
         onDragStart={() => {
@@ -303,6 +306,42 @@ export function RouteMap({
           </Source>
         )}
 
+
+        {isochrones && Object.keys(isochrones).length > 0 && (
+          <Source
+            id="isochrones"
+            type="geojson"
+            data={{
+              type: 'FeatureCollection',
+              features: Object.entries(isochrones).map(([rangeSeconds, ring]) => ({
+                type: 'Feature' as const,
+                geometry: {
+                  type: 'Polygon' as const,
+                  coordinates: [ring],
+                },
+                properties: { rangeSeconds: Number(rangeSeconds) },
+              })),
+            }}
+          >
+            <Layer
+              id="isochrones-fill"
+              type="fill"
+              paint={{
+                'fill-color': globalTokens.amber[400],
+                'fill-opacity': ['interpolate', ['linear'], ['get', 'rangeSeconds'], 300, 0.35, 900, 0.18, 1800, 0.08],
+              }}
+            />
+            <Layer
+              id="isochrones-outline"
+              type="line"
+              paint={{
+                'line-color': globalTokens.amber[600],
+                'line-width': 1.5,
+                'line-opacity': 0.6,
+              }}
+            />
+          </Source>
+        )}
 
         {route && spreadStops(route.orderedStops).map((stop, idx) => (
           <Marker

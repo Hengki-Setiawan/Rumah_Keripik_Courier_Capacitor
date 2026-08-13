@@ -57,4 +57,6 @@ export interface OptimizedRoute {
   source: RouteSource;
 }
 
-export const WAREHOUSE: LatLng = { lat: -5.1340, lng: 119.4135 };
+/** Start point rute HANYA posisi kurir (tidak ada gudang). Fallback netral
+ *  untuk kamera peta saat GPS/route belum tersedia — bukan titik mulai rute. */
+export const MAKASSAR_CENTER: LatLng = { lat: -5.1340, lng: 119.4135 };

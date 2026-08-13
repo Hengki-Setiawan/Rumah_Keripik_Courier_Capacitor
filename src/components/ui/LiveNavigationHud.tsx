@@ -41,8 +41,10 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
     }
   }
   if (distanceM == null || distanceM <= 0) {
-    // Fallback perkiraan: haversine dari posisi kurir (atau gudang) ke stop.
-    const from = courierLocation ?? { lat: -5.134, lng: 119.4135 };
+    // Fallback perkiraan: haversine dari posisi kurir. Tanpa posisi GPS, tak ada
+    // titik asal (tidak ada gudang) — biarkan HUD tidak menghitung jarak.
+    if (!courierLocation) return null;
+    const from = courierLocation;
     distanceM = haversineMeters(from, stop);
     // Asumsi kecepatan kurir motor di kota ~20 km/jam untuk perkiraan kasar;
     // kecepatan GPS riil (bila ada) dipakai untuk hasil yang lebih akurat.

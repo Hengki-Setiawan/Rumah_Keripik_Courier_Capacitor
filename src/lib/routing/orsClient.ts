@@ -171,3 +171,65 @@ export async function snapStopsToRoad(
     return { ...s, lat, lng, address: s.address, customerName: s.customerName, sequence: s.sequence };
   });
 }
+
+interface ReverseGeocodeFeature {
+  properties?: {
+    label?: string;
+    name?: string;
+    locality?: string;
+    district?: string;
+    region?: string;
+  };
+}
+
+/** Reverse geocode ORS (Pelias): koordinat -> alamat terbaca manusia. */
+export async function reverseGeocodePoint(
+  lat: number,
+  lng: number,
+  apiKey: string,
+): Promise<string | null> {
+  const res = await fetch('https://api.openrouteservice.org/geocode/reverse', {
+    method: 'POST',
+    headers: { 'Authorization': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      point: [lng, lat],
+      size: 1,
+      'boundary.country': 'ID',
+    }),
+  });
+  if (!res.ok) throw new Error(`ORS reverse geocode error: ${res.status}`);
+  const data = await res.json();
+  const feat: ReverseGeocodeFeature | undefined = data?.features?.[0];
+  if (!feat?.properties) return null;
+  const p = feat.properties;
+  return p.label || p.name || `${p.district ?? ''}${p.locality ? `, ${p.locality}` : ''}`.trim() || null;
+}
+
+/** Isochrones ORS: zona sekitar titik (detik) -> array polygon [lng,lat][]. */
+export async function fetchIsochrones(
+  center: LatLng,
+  rangesSeconds: number[],
+  apiKey: string,
+): Promise<{[rangeSeconds: number]: [number, number][]}> {
+  const res = await fetch('https://api.openrouteservice.org/v2/isochrones/driving-car', {
+    method: 'POST',
+    headers: { 'Authorization': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      locations: [[center.lng, center.lat]],
+      range_type: 'time',
+      range: rangesSeconds,
+    }),
+  });
+  if (!res.ok) throw new Error(`ORS isochrones error: ${res.status}`);
+  const data = await res.json();
+
+  const result: {[rangeSeconds: number]: [number, number][]} = {};
+  const features = data?.features ?? [];
+  for (const f of features) {
+    const range = f?.properties?.value as number | undefined;
+    const coords = f?.geometry?.coordinates as [number, number][][] | undefined;
+    if (range == null || !Array.isArray(coords) || coords.length === 0) continue;
+    result[range] = coords[0];
+  }
+  return result;
+}

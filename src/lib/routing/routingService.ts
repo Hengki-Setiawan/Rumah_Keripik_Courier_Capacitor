@@ -3,7 +3,7 @@ import { optimizeWithOrs, fetchDirectionsGeometry, fetchDistanceMatrix, snapStop
 import { fetchOsrmRoute } from './osrmClient';
 import { haversineMeters } from './distance';
 import { getCachedRoute, setCachedRoute } from './routeCache';
-import { WAREHOUSE, type LatLng, type RouteWaypoint, type OptimizedRoute, type RouteLegGeometry } from './types';
+import { type LatLng, type RouteWaypoint, type OptimizedRoute, type RouteLegGeometry } from './types';
 
 const ORS_API_KEY = import.meta.env.VITE_ORS_API_KEY as string | undefined;
 
@@ -121,7 +121,7 @@ export function buildRouteQueryKey(stops: RouteWaypoint[]): string {
 
 /**
  * Query key lengkap rute teroptimasi. Berisi (1) deliveryId terurut, (2) depot
- * (gudang vs posisi kurir saat re-optimize, dibulatkan agar stabil), dan
+ * (posisi kurir saat re-optimize, dibulatkan agar stabil), dan
  * (3) forceKey (bump saat user tekan "Optimalkan" manual). Key berubah =
  * React Query fetch ulang, jadi re-optimize dari GPS cukup ganti depot di sini.
  */
@@ -130,7 +130,7 @@ export function buildOptimizedRouteQueryKey(
   depot?: LatLng,
   forceKey = 0,
 ): readonly ['route', 'optimized', string, string, number] {
-  const depotStr = depot ? `${depot.lat.toFixed(5)},${depot.lng.toFixed(5)}` : 'warehouse';
+  const depotStr = depot ? `${depot.lat.toFixed(5)},${depot.lng.toFixed(5)}` : 'courier';
   return ['route', 'optimized', buildRouteQueryKey(stops), depotStr, forceKey];
 }
 
@@ -172,10 +172,24 @@ export async function buildOptimizedRoute(
     return { orderedStops: [], legs: [], totalDistanceMeters: 0, totalDurationSeconds: 0, source: 'local-heuristic' };
   }
 
-  // Depot dinamis: default gudang, tapi saat re-optimize memakai posisi GPS kurir.
-  const depot = opts.depot ?? WAREHOUSE;
-
+  // Depot = posisi kurir. Tanpa posisi GPS, urutkan berdasar sequence bawaan
+  // server (anti-gagal) — bukan dari gudang.
+  const depot = opts.depot;
   const cacheKey = buildCacheKey(stops);
+
+  if (!depot) {
+    const orderedStops = [...stops].sort((a, b) => a.sequence - b.sequence);
+    const result: OptimizedRoute = {
+      orderedStops,
+      legs: [],
+      totalDistanceMeters: 0,
+      totalDurationSeconds: 0,
+      source: 'straight-line-fallback',
+    };
+    await setCachedRoute(cacheKey, result);
+    return result;
+  }
+
   const cached = await getCachedRoute(cacheKey);
 
   // Probe jaringan secara nyata (bukan hanya navigator.onLine)
