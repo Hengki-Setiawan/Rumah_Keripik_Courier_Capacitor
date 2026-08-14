@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, CreditCard } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, CreditCard, Bell } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -23,6 +23,7 @@ export default function DeliveryDetail() {
   const { data: delivery, isLoading } = useDeliveryDetail(deliveryId);
   const updateDeliveryStatus = useDeliveryStore((s) => s.updateDeliveryStatus);
   const [busy, setBusy] = useState(false);
+  const [notifyBusy, setNotifyBusy] = useState<'arriving' | 'arrived' | null>(null);
 
   if (isLoading && !delivery) {
     return (
@@ -71,6 +72,22 @@ export default function DeliveryDetail() {
       }
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function notifyWa(type: 'arriving' | 'arrived') {
+    setNotifyBusy(type);
+    try {
+      await apiRequest(`/api/courier/deliveries/${deliveryId}/notify-wa`, {
+        method: 'POST',
+        body: JSON.stringify({ type }),
+      });
+      await hapticImpact('light');
+      toast.success(type === 'arriving' ? 'Pemberitahuan segera tiba terkirim' : 'Pemberitahuan sampai terkirim');
+    } catch {
+      toast.error('Gagal kirim notifikasi. Periksa koneksi lalu coba lagi.');
+    } finally {
+      setNotifyBusy(null);
     }
   }
 
@@ -212,6 +229,14 @@ export default function DeliveryDetail() {
             </Button>
           ) : delivery.status === 'Dalam_Pengiriman' ? (
             <>
+              <div className="grid grid-cols-2 gap-2">
+                <Button size="sm" variant="secondary" loading={notifyBusy === 'arriving'} disabled={notifyBusy !== null} onClick={() => notifyWa('arriving')} fullWidth>
+                  <Bell className="mr-1.5 size-4" /> Segera Tiba
+                </Button>
+                <Button size="sm" variant="secondary" loading={notifyBusy === 'arrived'} disabled={notifyBusy !== null} onClick={() => notifyWa('arrived')} fullWidth>
+                  <Bell className="mr-1.5 size-4" /> Sudah Sampai
+                </Button>
+              </div>
               <Button size="lg" variant="success" loading={busy} onClick={() => transition('arrived')} fullWidth>
                 Saya Sudah Sampai
               </Button>
