@@ -17,6 +17,7 @@ interface RouteBottomSheetProps {
   activeStopIndex: number;
   onSelectStop: (i: number) => void;
   onStartNavigation?: (i: number) => void;
+  onOpenDetail?: (deliveryId: string) => void;
 }
 
 export function RouteBottomSheet({
@@ -29,6 +30,7 @@ export function RouteBottomSheet({
   activeStopIndex,
   onSelectStop,
   onStartNavigation,
+  onOpenDetail,
 }: RouteBottomSheetProps) {
   const stops = route?.orderedStops ?? [];
 
@@ -88,6 +90,17 @@ export function RouteBottomSheet({
                       </p>
                     )}
                   </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenDetail?.(s.deliveryId);
+                    }}
+                    className="shrink-0"
+                  >
+                    Detail
+                  </Button>
                   {i === activeStopIndex && s.lat != null && s.lng != null && (
                     <Button
                       size="sm"

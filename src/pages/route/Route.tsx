@@ -433,6 +433,7 @@ export default function Route() {
             if (s) setActiveStopId(s.deliveryId);
             if (snap === 'peek') setSnap('half');
           }}
+          onOpenDetail={(deliveryId) => navigate(`/delivery/${deliveryId}`)}
           onStartNavigation={() => {
             void hapticImpact('medium');
             setNavigationMode(true);

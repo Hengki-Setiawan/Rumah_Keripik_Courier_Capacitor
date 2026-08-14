@@ -126,6 +126,17 @@ export default function DeliveryDetail() {
           </div>
         </Card>
 
+        {delivery.status === 'Dalam_Pengiriman' && (
+          <div className="grid grid-cols-2 gap-2">
+            <Button size="md" variant="secondary" loading={notifyBusy === 'arriving'} disabled={notifyBusy !== null} onClick={() => notifyWa('arriving')} fullWidth>
+              <Bell className="mr-1.5 size-4" /> Segera Tiba
+            </Button>
+            <Button size="md" variant="secondary" loading={notifyBusy === 'arrived'} disabled={notifyBusy !== null} onClick={() => notifyWa('arrived')} fullWidth>
+              <Bell className="mr-1.5 size-4" /> Sudah Sampai
+            </Button>
+          </div>
+        )}
+
         <Card>
           <p className="mb-2 text-xs font-semibold text-ink-muted">Penerima</p>
           <div className="flex items-center gap-3">
@@ -229,14 +240,6 @@ export default function DeliveryDetail() {
             </Button>
           ) : delivery.status === 'Dalam_Pengiriman' ? (
             <>
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="sm" variant="secondary" loading={notifyBusy === 'arriving'} disabled={notifyBusy !== null} onClick={() => notifyWa('arriving')} fullWidth>
-                  <Bell className="mr-1.5 size-4" /> Segera Tiba
-                </Button>
-                <Button size="sm" variant="secondary" loading={notifyBusy === 'arrived'} disabled={notifyBusy !== null} onClick={() => notifyWa('arrived')} fullWidth>
-                  <Bell className="mr-1.5 size-4" /> Sudah Sampai
-                </Button>
-              </div>
               <Button size="lg" variant="success" loading={busy} onClick={() => transition('arrived')} fullWidth>
                 Saya Sudah Sampai
               </Button>
