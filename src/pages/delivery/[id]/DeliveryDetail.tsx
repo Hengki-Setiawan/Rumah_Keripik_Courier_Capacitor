@@ -40,20 +40,16 @@ export default function DeliveryDetail() {
     return <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}><Card><p className="text-center text-sm text-alert py-6">Pengiriman tidak ditemukan.</p></Card></AppShell>;
   }
 
-  async function transition(status: 'start' | 'arrived' | 'complete') {
+  async function transition(status: 'complete') {
     setBusy(true);
     try {
       await apiRequest(`/api/courier/deliveries/${deliveryId}/${status}`, { method: 'POST' });
-      updateDeliveryStatus(deliveryId, status === 'start' ? 'Dalam_Pengiriman' : status === 'complete' ? 'Terkirim' : 'Dalam_Pengiriman');
+      updateDeliveryStatus(deliveryId, 'Terkirim');
       invalidateDeliveries(queryClient);
-      await hapticImpact(status === 'complete' ? 'heavy' : 'light');
-      if (status === 'start' || status === 'arrived') {
-        navigate(`/delivery/${deliveryId}/proof`);
-      } else {
-        await hapticNotification('success');
-        toast.success('Pengiriman selesai');
-        navigate('/');
-      }
+      await hapticImpact('heavy');
+      await hapticNotification('success');
+      toast.success('Pengiriman selesai');
+      navigate('/');
     } catch {
       await enqueueAction({
         entityType: 'delivery',
@@ -61,15 +57,11 @@ export default function DeliveryDetail() {
         action: status,
         payload: { deliveryId },
       });
-      updateDeliveryStatus(deliveryId, status === 'start' ? 'Dalam_Pengiriman' : status === 'complete' ? 'Terkirim' : 'Dalam_Pengiriman');
+      updateDeliveryStatus(deliveryId, 'Terkirim');
       invalidateDeliveries(queryClient);
-      if (status === 'start' || status === 'arrived') {
-        navigate(`/delivery/${deliveryId}/proof`);
-      } else {
-        await hapticNotification('success');
-        toast.warning('Offline — "Selesai" disimpan & dikirim otomatis');
-        navigate('/');
-      }
+      await hapticNotification('success');
+      toast.warning('Offline — "Selesai" disimpan & dikirim otomatis');
+      navigate('/');
     } finally {
       setBusy(false);
     }
@@ -126,7 +118,7 @@ export default function DeliveryDetail() {
           </div>
         </Card>
 
-        {delivery.status === 'Dalam_Pengiriman' && (
+        {(delivery.status === 'Siap_Dikirim' || delivery.status === 'Dalam_Pengiriman') && (
           <div className="grid grid-cols-2 gap-2">
             <Button size="md" variant="secondary" loading={notifyBusy === 'arriving'} disabled={notifyBusy !== null} onClick={() => notifyWa('arriving')} fullWidth>
               <Bell className="mr-1.5 size-4" /> Segera Tiba
@@ -234,20 +226,19 @@ export default function DeliveryDetail() {
         </Card>
 
         <div className="flex flex-col gap-2">
-          {delivery.status === 'Siap_Dikirim' ? (
-            <Button size="lg" loading={busy} onClick={() => transition('start')} fullWidth>
-              Mulai Pengiriman
-            </Button>
-          ) : delivery.status === 'Dalam_Pengiriman' ? (
+          {(delivery.status === 'Siap_Dikirim' || delivery.status === 'Dalam_Pengiriman') && (
             <>
-              <Button size="lg" variant="success" loading={busy} onClick={() => transition('arrived')} fullWidth>
-                Saya Sudah Sampai
-              </Button>
-              <Button size="lg" variant="secondary" loading={busy} onClick={() => transition('complete')} fullWidth>
+              <Button size="lg" variant="success" loading={busy} onClick={() => transition('complete')} fullWidth>
                 Selesaikan Pengiriman
               </Button>
+              <Button size="lg" variant="secondary" onClick={() => navigate(`/delivery/${deliveryId}/proof`)} fullWidth>
+                Foto Penerima (opsional)
+              </Button>
+              <Button size="lg" variant="danger" onClick={() => navigate(`/delivery/${deliveryId}/proof?fail=1`)} fullWidth>
+                Tandai Gagal
+              </Button>
             </>
-          ) : null}
+          )}
         </div>
       </div>
     </AppShell>

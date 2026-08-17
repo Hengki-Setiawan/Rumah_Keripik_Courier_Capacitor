@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Package, MapPin, Clock3, CheckCircle2, Wallet, TimerReset, Navigation, Siren, ChevronRight, RefreshCw } from 'lucide-react';
+import { Package, MapPin, Clock3, CheckCircle2, Wallet, Navigation, Siren, ChevronRight, RefreshCw } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { StatCard } from '@/components/ui/StatCard';
@@ -7,6 +7,7 @@ import { IconBadge } from '@/components/ui/IconBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useTodayDeliveries, invalidateDeliveries, deliveriesKeys } from '@/hooks/use-deliveries';
+import { useCourierRoutes, routesKeys } from '@/hooks/use-courier-routes';
 import { useStats, statsKeys } from '@/hooks/use-stats';
 import { useEarnings, earningsKeys } from '@/hooks/use-earnings';
 import { useAuthStore } from '@/stores/auth-store';
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const courier = useAuthStore((s) => s.courier);
   const { data: deliveries, isLoading, isError } = useTodayDeliveries();
+  const { data: routeData } = useCourierRoutes();
   const { data: stats } = useStats('week');
   const { data: earnings } = useEarnings('weekly');
 
@@ -31,6 +33,7 @@ export default function Dashboard() {
     queryClient.invalidateQueries({ queryKey: statsKeys.me('week') });
     queryClient.invalidateQueries({ queryKey: earningsKeys.period('weekly') });
     queryClient.invalidateQueries({ queryKey: deliveriesKeys.all });
+    queryClient.invalidateQueries({ queryKey: routesKeys.today });
   }
 
   return (
@@ -49,9 +52,9 @@ export default function Dashboard() {
         </Card>
 
         <button
-          onClick={() => navigate('/route')}
+          onClick={() => navigate(routeData?.hasActiveRoute ? '/route' : '/route-picker')}
           className="group relative flex items-center justify-between overflow-hidden rounded-[20px] bg-brand px-5 py-4 text-left shadow-card-lg transition-all active:scale-[0.98]"
-          aria-label="Mulai lacak lokasi real-time"
+          aria-label={routeData?.hasActiveRoute ? 'Buka rute hari ini' : 'Pilih jalur pengiriman'}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-brand to-brand-pressed opacity-60" />
           <div className="relative flex items-center gap-3">
@@ -59,8 +62,16 @@ export default function Dashboard() {
               <Navigation className="size-5" />
             </div>
             <div>
-              <p className="text-sm font-bold text-on-accent">Mulai Lacak Lokasi Real-Time</p>
-              <p className="mt-0.5 text-xs font-medium text-on-accent/80">Buka rute & kirim posisimu ke admin</p>
+              <p className="text-sm font-bold text-on-accent">
+                {routeData?.hasActiveRoute ? 'Mulai Lacak Lokasi Real-Time' : 'Cari Jalur Hari Ini'}
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-on-accent/80">
+                {routeData?.hasActiveRoute
+                  ? 'Buka rute & kirim posisimu ke admin'
+                  : routeData && routeData.available.length > 0
+                    ? `${routeData.available.length} jalur tersedia untuk dipilih`
+                    : 'Belum ada jalur tersedia'}
+              </p>
             </div>
           </div>
           <ChevronRight className="relative size-5 text-on-accent/80 transition-transform group-active:translate-x-0.5" />
@@ -95,20 +106,13 @@ export default function Dashboard() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <button
             onClick={() => navigate('/route')}
             className="flex items-center gap-3 rounded-[20px] bg-raised p-4 text-ink shadow-card hover:shadow-card-lg active:scale-[0.98] transition-all"
           >
             <IconBadge icon={Navigation} tone="brand" />
             <span className="text-sm font-semibold">Rute</span>
-          </button>
-          <button
-            onClick={() => navigate('/shift')}
-            className="flex items-center gap-3 rounded-[20px] bg-raised p-4 text-ink shadow-card hover:shadow-card-lg active:scale-[0.98] transition-all"
-          >
-            <IconBadge icon={TimerReset} tone="brand" />
-            <span className="text-sm font-semibold">Shift</span>
           </button>
           <button
             onClick={() => navigate('/earnings')}

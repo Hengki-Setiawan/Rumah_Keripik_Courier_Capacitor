@@ -21,7 +21,7 @@ const TIPS = [
   },
   {
     title: 'Battery saver',
-    body: 'Aktifkan Battery Saver / Stamina mode sebelum mulai shift untuk membatasi proses latar belakang.',
+    body: 'Aktifkan Battery Saver / Stamina mode saat mulai bekerja untuk membatasi proses latar belakang.',
     icon: BatteryCharging,
   },
 ];
@@ -64,7 +64,7 @@ const BRANDS: Array<{ name: string; steps: string[] }> = [
     steps: [
       'Settings → Battery → Battery Saver',
       'Settings → Apps → Rumah Keripik → Battery → Unrestricted',
-      'Settings → Location → App location permission → Allow all the time (saat shift aktif)',
+      'Settings → Location → App location permission → Allow all the time (saat aplikasi aktif)',
     ],
   },
 ];

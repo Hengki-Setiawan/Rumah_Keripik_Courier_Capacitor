@@ -47,7 +47,8 @@ export type RouteSource =
   | 'ors-directions'
   | 'osrm'
   | 'local-heuristic'
-  | 'straight-line-fallback';
+  | 'straight-line-fallback'
+  | 'server-optimize';
 
 export interface OptimizedRoute {
   orderedStops: RouteWaypoint[];
@@ -58,5 +59,5 @@ export interface OptimizedRoute {
 }
 
 /** Start point rute HANYA posisi kurir (tidak ada gudang). Fallback netral
- *  untuk kamera peta saat GPS/route belum tersedia — bukan titik mulai rute. */
+ *  untuk kamera peta saat GPS/route belum tersedia ΓÇö bukan titik mulai rute. */
 export const MAKASSAR_CENTER: LatLng = { lat: -5.1340, lng: 119.4135 };

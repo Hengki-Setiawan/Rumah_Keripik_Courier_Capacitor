@@ -68,7 +68,7 @@ function handleLocation(loc: TrackedLocation): void {
   })();
 }
 
-// Start background watcher (native Capacitor) — dipanggil saat shift aktif.
+// Start background watcher (native Capacitor) — aktif otomatis saat kurir login.
 async function startNativeWatcher(): Promise<void> {
   const id = await BackgroundGeolocation.addWatcher(
     {

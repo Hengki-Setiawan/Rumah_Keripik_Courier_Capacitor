@@ -3,6 +3,7 @@ import { STORAGE_KEYS, getJson, secureStorage, setJson } from '@/lib/storage';
 import { fetchMe, loginWithPin, logoutRemote } from '@/lib/api-client';
 import { initPushNotifications, unregisterPushToken, type PushNotificationOptions } from '@/lib/notifications';
 import { setupLiveUpdate } from '@/lib/live-update';
+import { startLocationTracking, stopLocationTracking } from '@/lib/background-location';
 import { identifyCourier, resetAnalytics, track } from '@/lib/analytics';
 import { useOfferStore } from '@/stores/offer-store';
 import type { CourierDto } from '@/lib/types';
@@ -59,6 +60,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (tokens && courier) {
         set({ isAuthenticated: true, courier, hasPin, pinEnabled: pinEnabled && hasPin, pinLocked: pinEnabled && hasPin });
+        void startLocationTracking().catch(() => undefined);
         fetchMe()
           .then((fresh) => {
             set({ courier: fresh });
@@ -90,6 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ isAuthenticated: true, courier: result.courier, pinEnabled });
       identifyCourier(result.courier.id, { name: result.courier.name });
       track('login_success');
+      void startLocationTracking().catch(() => undefined);
       void initPushNotifications(notifOpts());
       void setupLiveUpdate({ courierId: result.courier.id });
       return { ok: true };
@@ -112,6 +115,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     await unregisterPushToken();
     useOfferStore.setState({ offer: null, busy: false, error: null });
     resetAnalytics();
+    void stopLocationTracking().catch(() => undefined);
     set({ isAuthenticated: false, courier: null });
   },
 

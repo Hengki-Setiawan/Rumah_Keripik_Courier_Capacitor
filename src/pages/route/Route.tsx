@@ -29,7 +29,7 @@ export default function Route() {
   const rawLocation = useUserLocation();
   const [snap, setSnap] = useState<SnapPoint>('peek');
 
-  // ----- Re-optimisasi dinamis dari posisi kurir (blueprint §4.6) -----
+  // ----- Re-optimisasi dinamis dari posisi kurir (blueprint Γö¼┬║4.6) -----
   // Tidak ada gudang: depot ALWAYS posisi GPS kurir. depotOverride diisi dari
   // tracking.position (lihat effect seeding di bagian tracking).
   // forceKey: bump setiap trigger manual supaya fetch ulang walau depot sama.
@@ -45,10 +45,22 @@ export default function Route() {
     [deliveries],
   );
 
+  // Jalur aktif kurir. Ambil route_id dari delivery yang BELUM selesai dulu
+  // (setelah jalur A completed lalu claim jalur B di hari sama, jangan ambil
+  // route_id A). Dipakai sebagai serverRouteId: saat online, urutan stop datang
+  // dari SERVER (VI.2).
+  const serverRouteId = useMemo(() => {
+    const active = (deliveries ?? []).find(
+      (d) => d.route_id != null && d.status !== 'Terkirim' && d.status !== 'Gagal',
+    );
+    return active?.route_id ?? null;
+  }, [deliveries]);
+
   const { data: route, isLoading, isFetching, queryKey } = useOptimizedRoute({
     depot: depotOverride,
     excludeIds: completedIds,
     forceKey,
+    serverRouteId,
   });
 
   // Target aktif dilock by deliveryId (bukan index) agar re-optimize yang mengubah
@@ -129,7 +141,7 @@ export default function Route() {
   }, [tracking.position]);
 
   // Auto re-optimize berkala: saat kurir berpindah jauh (>500 m) sejak re-optimize
-  // terakhir, hitung ulang rute dari posisi aktual — tanpa perlu stop selesai.
+  // terakhir, hitung ulang rute dari posisi aktual ╬ô├ç├╢ tanpa perlu stop selesai.
   // Interval cek 60 detik; hemat kuota (bukan tiap tick GPS).
   const lastAutoReoptRef = useRef<{ at: number; lat: number; lng: number } | null>(null);
   const positionRef = useRef(tracking.position);
@@ -186,7 +198,7 @@ export default function Route() {
       setActiveStopId(deliveryId);
       if (!navigationMode && snap === 'peek') setSnap('half');
       // Saat sedang navigasi: hitung ulang rute dari POSISI KURIR ke stop baru,
-      // bukan memakai segmen tur lama (mis. stop1→stop2) antar-titik.
+      // bukan memakai segmen tur lama (mis. stop1╬ô├Ñ├åstop2) antar-titik.
       if (navigationMode && route) void rerouteToStop(route, idx);
     }
   }
@@ -295,7 +307,7 @@ export default function Route() {
         isochrones={showIsochrones ? isochrones : null}
       />
 
-      {/* Chip alamat kurir (reverse geocode) — kecil, info posisi saat ini */}
+      {/* Chip alamat kurir (reverse geocode) ╬ô├ç├╢ kecil, info posisi saat ini */}
       {courierAddress && !navigationMode && (
         <div className="pointer-events-none absolute left-4 right-16 top-[calc(env(safe-area-inset-top,0px)+5.7rem)] z-10 max-w-[70%]">
           <p className="inline-flex max-w-full items-center gap-1 rounded-full bg-surface/95 px-3 py-1.5 text-[11px] text-ink-secondary shadow-card backdrop-blur">
@@ -324,12 +336,12 @@ export default function Route() {
         </button>
       </div>
 
-      {/* Banner manuver turn-by-turn — hanya muncul saat mode navigasi aktif */}
+      {/* Banner manuver turn-by-turn ╬ô├ç├╢ hanya muncul saat mode navigasi aktif */}
       {navigationMode && (!tracking.offRoute || navigationMode) && (
         <TurnByTurnHud leg={route?.legs[activeStopIndex] ?? null} position={tracking.position} />
       )}
 
-      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps — disembunyikan saat navigationMode */}
+      {/* HUD navigasi: jarak tersisa + ETA ke stop aktif + tombol Google Maps ╬ô├ç├╢ disembunyikan saat navigationMode */}
       {!navigationMode && (
         <LiveNavigationHud
           route={route ?? null}
@@ -338,7 +350,7 @@ export default function Route() {
         />
       )}
 
-      {/* Map action strip (R3.2): satu container tombol kontrol peta — jarak seragam,
+      {/* Map action strip (R3.2): satu container tombol kontrol peta ╬ô├ç├╢ jarak seragam,
           satu posisi kanan layar, alih-alih tiga FAB absolute terpisah. */}
       <div className="absolute right-4 bottom-[calc(54dvh+0.5rem)] z-40 flex flex-col gap-3">
         {activeLat != null && activeLng != null && !navigationMode && (

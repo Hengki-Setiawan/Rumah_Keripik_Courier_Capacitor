@@ -50,9 +50,7 @@ async function sendNow(input: OfflineActionInput): Promise<void> {
         ? `/api/courier/incidents`
         : entityType === 'sos'
           ? `/api/courier/sos`
-          : entityType === 'shift'
-            ? `/api/courier/shift/${action}`
-            : '';
+          : '';
   if (!url) throw new Error(`unknown entityType ${entityType}`);
   await apiRequest(url, { method: 'POST', body: JSON.stringify(payload) });
 }
