@@ -15,20 +15,32 @@ test('buka detail pengiriman dari dashboard', async ({ page }) => {
   await expect(page.getByText('RK-1004')).toBeVisible();
   await expect(page.getByText('Rudi Hermawan')).toBeVisible();
   await expect(page.getByText('Jl. Urip Sumoharjo No. 88')).toBeVisible();
-  await expect(page.getByText('Rp 85.000')).toBeVisible();
+  await expect(page.getByText('Rp 85.000').first()).toBeVisible();
 });
 
-test('mulai pengiriman membuka halaman bukti', async ({ page }) => {
+test('selesaikan pengiriman kembali ke dashboard', async ({ page }) => {
   await loginAs(page);
 
   await page.getByText('Berikutnya').waitFor();
   await page.getByText('Rudi Hermawan').click();
   await expect(page.getByText('Detail Pengiriman')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Mulai Pengiriman', exact: true }).click();
+  await page.getByRole('button', { name: 'Selesaikan Pengiriman', exact: true }).click();
 
-  await expect(page.getByText('Bukti Pengiriman')).toBeVisible();
-  await expect(page.getByText('Tanda Tangan Penerima')).toBeVisible();
+  await expect(page.getByText('Pengiriman selesai')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Beranda' })).toBeVisible();
+});
+
+test('foto penerima membuka halaman foto', async ({ page }) => {
+  await loginAs(page);
+
+  await page.getByText('Berikutnya').waitFor();
+  await page.getByText('Rudi Hermawan').click();
+  await expect(page.getByText('Detail Pengiriman')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Foto Penerima (opsional)', exact: true }).click();
+
+  await expect(page.getByRole('heading', { name: 'Foto Penerima' })).toBeVisible();
 });
 
 test('telpon & whatsapp tersedia di detail pengiriman', async ({ page }) => {

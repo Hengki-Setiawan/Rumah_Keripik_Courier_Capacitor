@@ -6,10 +6,12 @@ tags:
 - launchApp:
     clearState: true
     stopApp: true
-# --- login (PIN 4 digit, konsisten smoke-login) ---
+# --- login (PIN 6 digit — Login.tsx PIN_LENGTH=6; isi PIN kurir aktif yang valid di prod) ---
 - extendedWaitUntil:
     visible: "Masukkan PIN untuk masuk"
     timeout: 60000
+- tapOn: "1"
+- tapOn: "1"
 - tapOn: "1"
 - tapOn: "1"
 - tapOn: "1"
@@ -26,8 +28,9 @@ tags:
     timeout: 30000
 - assertVisible: "Ambil"
 - tapOn: "Ambil"
-# --- verifikasi pindah ke halaman rute ---
+# --- verifikasi pindah ke halaman rute (header "Rute Hari Ini";
+#     tombol start navigasi per-stop berlabel "Navigasi") ---
 - extendedWaitUntil:
-    visible: "Mulai Navigasi"
+    visible: "Rute Hari Ini"
     timeout: 60000
 - takeScreenshot: "jalur_route_opened"

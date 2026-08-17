@@ -1,5 +1,14 @@
 import type { Page, Route } from '@playwright/test';
-import type { CourierDto, CourierDelivery, DeliveryDetail, EarningsEntry, NotificationItem, StatsMe } from '../src/lib/types';
+import type { CourierDto, CourierDelivery, CourierRoute, DeliveryDetail, EarningsEntry, NotificationItem, StatsMe } from '../src/lib/types';
+
+export interface RoutesMockData {
+  available?: CourierRoute[];
+  mine?: CourierRoute[];
+  history?: CourierRoute[];
+  other?: CourierRoute[];
+  assignedCount?: number;
+  hasActiveRoute?: boolean;
+}
 
 export interface CourierMockOptions {
   pin?: string;
@@ -7,9 +16,9 @@ export interface CourierMockOptions {
   deliveries?: CourierDelivery[];
   deliveryDetail?: Partial<DeliveryDetail>;
   stats?: Partial<StatsMe>;
-  shiftClockIn?: { shiftId: number; clockInAt: string };
   earnings?: { entries: EarningsEntry[]; summary: { totalConfirmed: number; pendingTotal: number; deliveryCount: number; period: string } };
   notifications?: { notifications: NotificationItem[]; unreadCount: number };
+  routes?: RoutesMockData;
 }
 
 export function defaultCourier(): CourierDto {
@@ -104,6 +113,17 @@ export function defaultStats(): StatsMe {
   };
 }
 
+export function defaultRoutes(): Required<RoutesMockData> {
+  return {
+    available: [] as CourierRoute[],
+    mine: [] as CourierRoute[],
+    history: [] as CourierRoute[],
+    other: [] as CourierRoute[],
+    assignedCount: 0,
+    hasActiveRoute: true,
+  };
+}
+
 export function buildDeliveryDetail(id: number, extra: Partial<DeliveryDetail> = {}): DeliveryDetail {
   const names: Record<number, { nama: string; hp: string; alamat: string; kode: string }> = {
     1: { nama: 'Budi Santoso', hp: '081112223333', alamat: 'Jl. Perintis Kemerdekaan No. 10', kode: 'RK-1001' },
@@ -143,12 +163,12 @@ export async function installCourierApiMock(page: Page, opts: CourierMockOptions
   const courier = opts.courier ?? defaultCourier();
   const deliveries = opts.deliveries ?? defaultDeliveries();
   const stats: StatsMe = { ...defaultStats(), ...opts.stats };
-  const clockIn = opts.shiftClockIn ?? { shiftId: 77, clockInAt: new Date().toISOString() };
   const earnings = opts.earnings ?? {
     entries: [] as EarningsEntry[],
     summary: { totalConfirmed: 40000, pendingTotal: 0, deliveryCount: 4, period: 'week' },
   };
   const notifications = opts.notifications ?? { notifications: [] as NotificationItem[], unreadCount: 0 };
+  const routes: Required<RoutesMockData> = { ...defaultRoutes(), ...opts.routes };
 
   await page.route('**/api/courier/**', async (route) => {
     const url = new URL(route.request().url());
@@ -197,13 +217,6 @@ export async function installCourierApiMock(page: Page, opts: CourierMockOptions
       return json(route, 200, { ok: true, data: stats });
     }
 
-    if (method === 'POST' && path === '/api/courier/shift/clock-in') {
-      return json(route, 200, { ok: true, data: clockIn });
-    }
-    if (method === 'POST' && path === '/api/courier/shift/clock-out') {
-      return json(route, 200, { ok: true, data: { clockOutAt: new Date().toISOString() } });
-    }
-
     if (method === 'GET' && path.startsWith('/api/courier/earnings')) {
       return json(route, 200, { ok: true, earnings: earnings.entries, summary: earnings.summary });
     }
@@ -224,6 +237,18 @@ export async function installCourierApiMock(page: Page, opts: CourierMockOptions
         }
       }
       return json(route, 200, { ok: true });
+    }
+
+    if (method === 'GET' && path === '/api/courier/routes') {
+      return json(route, 200, { ok: true, data: routes });
+    }
+    const routeAction = path.match(/^\/api\/courier\/routes\/(\d+)$/);
+    if (method === 'POST' && routeAction) {
+      return json(route, 200, { ok: true, data: { stopCount: 4 } });
+    }
+    const routeOptimize = path.match(/^\/api\/courier\/routes\/(\d+)\/optimize$/);
+    if (method === 'POST' && routeOptimize) {
+      return json(route, 200, { ok: true, data: { waypoints: [], totalStops: 0, totalEstimatedKm: 0, source: 'mock' } });
     }
 
     if (method === 'POST' && path === '/api/courier/route/optimize') {
