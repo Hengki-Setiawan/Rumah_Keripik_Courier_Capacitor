@@ -1,0 +1,33 @@
+appId: com.rumahkeripik.courier
+name: Jalur Flow — claim route dan buka rute
+tags:
+  - jalur
+---
+- launchApp:
+    clearState: true
+    stopApp: true
+# --- login (PIN 4 digit, konsisten smoke-login) ---
+- extendedWaitUntil:
+    visible: "Masukkan PIN untuk masuk"
+    timeout: 60000
+- tapOn: "1"
+- tapOn: "1"
+- tapOn: "1"
+- tapOn: "1"
+# --- Dashboard: tombol Cari Jalur Hari Ini ---
+- extendedWaitUntil:
+    visible: "Cari Jalur Hari Ini"
+    timeout: 60000
+- assertVisible: "Cari Jalur Hari Ini"
+- tapOn: "Cari Jalur Hari Ini"
+# --- RoutePicker: pilih jalur pertama (Ambil) ---
+- extendedWaitUntil:
+    visible: "Pilih Jalur Hari Ini"
+    timeout: 30000
+- assertVisible: "Ambil"
+- tapOn: "Ambil"
+# --- verifikasi pindah ke halaman rute ---
+- extendedWaitUntil:
+    visible: "Mulai Navigasi"
+    timeout: 60000
+- takeScreenshot: "jalur_route_opened"
