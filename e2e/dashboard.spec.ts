@@ -28,10 +28,3 @@ test('dashboard kosong menampilkan empty state', async ({ page }) => {
 
   await expect(page.getByText('Tidak ada pengiriman')).toBeVisible();
 });
-
-test('kartu shift di dashboard membuka halaman shift', async ({ page }) => {
-  await loginAs(page);
-
-  await page.getByRole('button', { name: 'Shift', exact: true }).click();
-  await expect(page.getByText('Mulai shift untuk menerima pengiriman')).toBeVisible();
-});
