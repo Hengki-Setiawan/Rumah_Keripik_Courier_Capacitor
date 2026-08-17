@@ -46,7 +46,7 @@ export function TurnByTurnHud({ leg, position, className }: TurnByTurnHudProps) 
   const remainingToEnd = leg && position ? remainingDistanceToEndM(leg, position) : null;
   const endCoord = leg?.coordinates?.[leg.coordinates.length - 1];
   const physicalToEndM = leg && position && endCoord ? haversineMeters(position, { lat: endCoord[0], lng: endCoord[1] }) : null;
-  const arrived = upcoming.step.modifier === 'arrive' || (remainingToEnd !== null && remainingToEnd < 30) || (physicalToEndM !== null && physicalToEndM < 40);
+  const arrived = (upcoming.step.modifier === 'arrive' && upcoming.distanceM < 50) || (remainingToEnd !== null && remainingToEnd < 30) || (physicalToEndM !== null && physicalToEndM < 40);
   const Icon = arrived ? MapPin : display.rotationDeg === 180 ? RotateCw : ArrowUp;
 
   return (

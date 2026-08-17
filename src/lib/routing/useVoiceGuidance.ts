@@ -74,7 +74,10 @@ export function useVoiceGuidance({
     // bisa masih besar, tapi fisik sudah dekat titik tujuan.
     const endCoord = leg?.coordinates?.[leg.coordinates.length - 1];
     const physicalToEndM = leg && position && endCoord ? haversineMeters(position, { lat: endCoord[0], lng: endCoord[1] }) : null;
-    const arrived = step.modifier === 'arrive' || (remainingToEnd !== null && remainingToEnd < 30) || (physicalToEndM !== null && physicalToEndM < 40);
+    // 'arrive' hanya dianggap tiba jika memang sudah dekat (<50m). Untuk rute pendek
+    // ORS hanya memberi step depart+arrive, sehingga tanpa cek jarak ini suara akan
+    // menyebut "sudah sampai tujuan" begitu navigasi dimulai.
+    const arrived = (step.modifier === 'arrive' && distanceM < 50) || (remainingToEnd !== null && remainingToEnd < 30) || (physicalToEndM !== null && physicalToEndM < 40);
 
     // Leg baru (stop lain / reroute): index step dimulai ulang Ã¢â€ â€™ reset ref agar
     // instruksi pertama leg baru tetap diumumkan.

@@ -30,6 +30,8 @@ export interface CourierDelivery {
   distance_km: string | null;
   notes: string | null;
   route_order: number | null;
+  route_id?: number | null;
+  route_name?: string | null;
   items?: CourierDeliveryItem[];
 }
 
@@ -119,24 +121,6 @@ export interface IncidentItem {
   description: string | null;
 }
 
-export interface AttendanceRecord {
-  id: number;
-  clockInAt: string | null;
-  clockInWithinGeofence: number | null;
-  clockOutAt: string | null;
-  clockOutWithinGeofence: number | null;
-  totalWorkMinutes: number | null;
-  status: string;
-}
-
-export interface ShiftState {
-  id: number;
-  status: 'active' | 'ended' | 'forced_end';
-  clockInAt?: string | null;
-  clockOutAt?: string | null;
-  totalDeliveries?: number | null;
-}
-
 export interface EarningsEntry {
   id: number;
   courierId: number;
@@ -153,4 +137,43 @@ export interface EarningsSummary {
   pendingTotal: number;
   deliveryCount: number;
   period: string;
+}
+
+export type CourierRouteStatus = 'open' | 'claimed' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface CourierRouteStop {
+  id: number;
+  id_transaksi: string;
+  sequence_no: number;
+  lat: string | null;
+  lng: string | null;
+  address: string | null;
+}
+
+export interface CourierRoute {
+  id: number;
+  routeName: string;
+  routeDate: string;
+  status: CourierRouteStatus;
+  courierId: number | null;
+  warehouseName: string | null;
+  stopCount: number;
+  estimatedDistanceKm: string | null;
+  estimatedDurationMinutes: number | null;
+  createdAt: string;
+  stops: CourierRouteStop[];
+  areaPreview: string[];
+  inRadius: boolean;
+}
+
+export interface CourierRoutesResponse {
+  ok: boolean;
+  data: {
+    available: CourierRoute[];
+    mine: CourierRoute[];
+    history: CourierRoute[];
+    other: CourierRoute[];
+    assignedCount: number;
+    hasActiveRoute: boolean;
+  };
 }

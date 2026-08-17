@@ -11,12 +11,12 @@ import LoginPage from '@/pages/Login';
 import DashboardPage from '@/pages/Dashboard';
 import HistoryPage from '@/pages/History';
 import StatsPage from '@/pages/Stats';
-import ShiftPage from '@/pages/shift/Shift';
 import SosPage from '@/pages/sos/SOS';
 import EarningsPage from '@/pages/earnings/Earnings';
 import NotificationsPage from '@/pages/notifications/Notifications';
 import IncidentsPage from '@/pages/incidents/Incidents';
 import RoutePage from '@/pages/route/Route';
+import RoutePickerPage from '@/pages/route/RoutePicker';
 import DeliveryDetailPage from '@/pages/delivery/[id]/DeliveryDetail';
 import ProofPage from '@/pages/delivery/[id]/Proof';
 import BatteryGuidePage from '@/pages/battery-guide/BatteryGuide';
@@ -79,12 +79,12 @@ function Protected() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/stats" element={<StatsPage />} />
-        <Route path="/shift" element={<ShiftPage />} />
         <Route path="/sos" element={<SosPage />} />
         <Route path="/earnings" element={<EarningsPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/incidents" element={<IncidentsPage />} />
         <Route path="/route" element={<RoutePage />} />
+        <Route path="/route-picker" element={<RoutePickerPage />} />
         <Route path="/battery-guide" element={<BatteryGuidePage />} />
         <Route path="/delivery/:id" element={<DeliveryDetailPage />} />
         <Route path="/delivery/:id/proof" element={<ProofPage />} />

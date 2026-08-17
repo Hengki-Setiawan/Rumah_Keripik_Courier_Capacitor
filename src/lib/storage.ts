@@ -8,7 +8,6 @@ export const STORAGE_KEYS = {
   pinEnabled: 'rk.pin_enabled',
   pinCode: 'rk.pin_code',
   themeMode: 'rk.theme_mode',
-  lastActiveShift: 'rk.last_active_shift',
   voiceMuted: 'rk.voice_muted',
   voiceEnabled: 'rk.voice_enabled',
   voiceRate: 'rk.voice_rate',

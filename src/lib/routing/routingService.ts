@@ -278,3 +278,30 @@ export async function buildOptimizedRoute(
   await setCachedRoute(cacheKey, result);
   return result;
 }
+
+/**
+ * Bangun rute untuk URUTAN YANG SUDAH DITETAPKAN (mis. hasil optimasi server
+ * `/api/courier/routes/[id]/optimize`). Urutan stop tidak diubah — hanya
+ * kelengkapan geometry jalan per-leg (real saat online, garis lurus offline).
+ * Dipakai saat server jadi sumber kebenaran urutan (blueprint VI.2), dengan
+ * fallback ke buildOptimizedRoute di pemanggil bila server gagal/offline.
+ */
+export async function buildFixedOrderRoute(
+  orderedStops: RouteWaypoint[],
+  depot: LatLng,
+): Promise<OptimizedRoute> {
+  const online = await isNetworkReachable();
+  let legs: RouteLegGeometry[];
+  try {
+    legs = online ? await fetchLegsConcurrently(orderedStops, depot) : straightLineLegs(orderedStops, depot);
+  } catch {
+    legs = straightLineLegs(orderedStops, depot);
+  }
+  return {
+    orderedStops,
+    legs,
+    totalDistanceMeters: legs.reduce((sum, l) => sum + l.distanceMeters, 0),
+    totalDurationSeconds: legs.reduce((sum, l) => sum + l.durationSeconds, 0),
+    source: 'server-optimize',
+  };
+}

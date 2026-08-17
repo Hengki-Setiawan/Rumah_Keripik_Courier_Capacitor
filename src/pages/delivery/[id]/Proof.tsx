@@ -1,25 +1,22 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Camera, XCircle, CheckCircle2 } from 'lucide-react';
 import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
-import SignatureCanvas from 'react-signature-canvas';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
 import { isNative } from '@/lib/env';
-import { globalTokens } from '@/tokens/global';
 
 export default function Proof() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const deliveryId = Number(id);
-  const sigRef = useRef<SignatureCanvas>(null);
   const [photoDataUrl, setPhotoDataUrl] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [failReason, setFailReason] = useState('');
-  const [showFail, setShowFail] = useState(false);
+  const [showFail] = useState(new URLSearchParams(window.location.search).get('fail') === '1');
   const [busy, setBusy] = useState(false);
 
   async function takePhoto() {
@@ -67,10 +64,8 @@ export default function Proof() {
 
   async function complete(failed = false) {
     setBusy(true);
-    const signatureDataUrl = sigRef.current?.isEmpty() ? undefined : sigRef.current?.toDataURL();
     const payload: Record<string, unknown> = {
       delivery_id: deliveryId,
-      signature_base64: signatureDataUrl,
       proof_url: photoDataUrl,
       ...(failed ? { reason: failReason } : {}),
       notes: failed ? undefined : notes,
@@ -95,10 +90,10 @@ export default function Proof() {
   }
 
   return (
-    <AppShell title="Bukti Pengiriman" onBack={() => navigate(-1)}>
+    <AppShell title={showFail ? 'Tandai Gagal' : 'Foto Penerima'} onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
         <Card>
-          <p className="mb-2 text-xs font-semibold text-ink-muted">Foto Barang / Bukti</p>
+          <p className="mb-2 text-xs font-semibold text-ink-muted">Foto Penerima (opsional)</p>
           {photoDataUrl ? (
             <img src={photoDataUrl} alt="Bukti" className="w-full rounded-xl" />
           ) : (
@@ -114,26 +109,6 @@ export default function Proof() {
               Mode web: foto diambil dari kamera browser bila tersedia.
             </p>
           )}
-        </Card>
-
-        <Card>
-          <p className="mb-2 text-xs font-semibold text-ink-muted">Tanda Tangan Penerima</p>
-          <div className="rounded-xl border border-border-default bg-white">
-            <SignatureCanvas
-              ref={sigRef}
-              canvasProps={{ width: 600, height: 200, className: 'w-full' }}
-              penColor={globalTokens.umber[950]}
-            />
-          </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-[10px] text-ink-muted">Tanda tangani di area di atas</span>
-            <button
-              onClick={() => sigRef.current?.clear()}
-              className="flex h-11 items-center px-2 text-[10px] font-semibold text-ink-muted underline"
-            >
-              Hapus
-            </button>
-          </div>
         </Card>
 
         {!showFail ? (
@@ -161,11 +136,16 @@ export default function Proof() {
         )}
 
         <div className="flex flex-col gap-2">
-          <Button size="lg" loading={busy} onClick={() => complete(false)} fullWidth>
-            <CheckCircle2 className="size-5" /> Selesaikan Pengiriman
-          </Button>
-          <Button variant="danger" loading={busy} onClick={() => (showFail ? complete(true) : setShowFail(true))} fullWidth>
-            <XCircle className="size-5" /> {showFail ? 'Kirim & Tandai Gagal' : 'Tandai Gagal'}
+          <Button size="lg" loading={busy} onClick={() => complete(showFail)} fullWidth>
+            {showFail ? (
+              <>
+                <XCircle className="size-5" /> Kirim & Tandai Gagal
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="size-5" /> Selesaikan Pengiriman
+              </>
+            )}
           </Button>
         </div>
       </div>
