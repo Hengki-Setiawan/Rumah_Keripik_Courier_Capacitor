@@ -8,6 +8,7 @@ import { identifyCourier, resetAnalytics, track } from '@/lib/analytics';
 import { useOfferStore } from '@/stores/offer-store';
 import type { CourierDto } from '@/lib/types';
 import { getOrCreateDeviceId } from '@/lib/device';
+import { generatePinSalt, hashPin, isPinHashingAvailable, verifyStoredPin } from '@/lib/pin-hash';
 
 interface AuthState {
   courier: CourierDto | null;
@@ -129,12 +130,25 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     await secureStorage.remove(STORAGE_KEYS.pinCode);
+    await secureStorage.remove(STORAGE_KEYS.pinSalt);
     await secureStorage.set(STORAGE_KEYS.pinEnabled, 'false');
     set({ pinEnabled: false, pinLocked: false, hasPin: false });
   },
 
   async setPin(pin) {
+    if (isPinHashingAvailable()) {
+      const salt = generatePinSalt();
+      const hash = await hashPin(pin, salt);
+      if (hash) {
+        await secureStorage.set(STORAGE_KEYS.pinCode, hash);
+        await secureStorage.set(STORAGE_KEYS.pinSalt, salt);
+        await secureStorage.set(STORAGE_KEYS.pinEnabled, 'true');
+        set({ pinEnabled: true, pinLocked: false, hasPin: true });
+        return;
+      }
+    }
     await secureStorage.set(STORAGE_KEYS.pinCode, pin);
+    await secureStorage.remove(STORAGE_KEYS.pinSalt);
     await secureStorage.set(STORAGE_KEYS.pinEnabled, 'true');
     set({ pinEnabled: true, pinLocked: false, hasPin: true });
   },
@@ -142,7 +156,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   async verifyPin(pin) {
     const stored = await secureStorage.get(STORAGE_KEYS.pinCode);
     if (!stored) return false;
-    const ok = stored === pin;
+    const salt = await secureStorage.get(STORAGE_KEYS.pinSalt);
+    const ok = await verifyStoredPin(pin, stored, salt);
     if (ok) set({ pinLocked: false });
     return ok;
   },
