@@ -79,59 +79,61 @@ export default function Incidents() {
   return (
     <AppShell title="Lapor Insiden" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
-        <Card className="border-brand/30 bg-brand-soft">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="size-5 text-brand" />
-            <p className="text-xs text-ink-secondary">
-              Laporkan kendala selama pengiriman. Laporan dikirim ke admin beserta lokasi Anda.
-            </p>
-          </div>
-        </Card>
+        {/* Banner Info */}
+        <div className="flex items-center gap-3 rounded-2xl border border-brand/25 bg-brand-soft p-3.5 shadow-sm">
+          <AlertTriangle className="size-5 shrink-0 text-brand" />
+          <p className="text-xs font-semibold text-brand-pressed leading-snug">
+            Laporkan kendala di jalan. Laporan terkirim ke admin dengan lokasi GPS terkini.
+          </p>
+        </div>
 
-        <Card>
-          <p className="mb-2 text-xs font-medium text-ink-muted">Jenis Insiden</p>
-          <div className="flex flex-wrap gap-2">
+        {/* Unified Form Card */}
+        <Card elevation={2} className="rounded-3xl border border-white/10 bg-surface/90 p-4 shadow-frameless backdrop-blur-xl">
+          <p className="mb-2 text-xs font-bold text-ink-muted uppercase tracking-wider">Pilih Jenis Kendala</p>
+          <div className="grid grid-cols-2 gap-2">
             {INCIDENT_OPTIONS.map((opt) => (
               <button
                 key={opt.value}
+                type="button"
                 onClick={() => setSelected(opt)}
-                className={`flex h-11 items-center rounded-full border px-3 text-xs font-medium transition-colors ${
-                  selected.value === opt.value ? 'bg-brand text-on-accent border-brand' : 'bg-surface border-border-subtle text-ink-secondary'
+                className={`flex h-12 items-center justify-center rounded-2xl border px-3 text-xs font-bold transition-all active:scale-95 ${
+                  selected.value === opt.value
+                    ? 'bg-brand text-on-accent border-brand shadow-[0_4px_12px_rgba(197,90,43,0.35)]'
+                    : 'bg-raised/70 border-border-subtle text-ink-secondary hover:text-ink'
                 }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-        </Card>
 
-        <Card>
-          <p className="mb-2 text-xs font-medium text-ink-muted">Keterangan</p>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Jelaskan insiden secara singkat..."
-            rows={4}
-            className="w-full rounded-xl border border-border-subtle bg-surface p-3 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none"
-          />
-        </Card>
+          <div className="mt-4 border-t border-border-subtle/50 pt-3">
+            <p className="mb-2 text-xs font-bold text-ink-muted uppercase tracking-wider">Keterangan Tambahan</p>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Jelaskan detail kendala (opsional)..."
+              rows={3}
+              className="w-full rounded-2xl border border-border-subtle bg-raised/50 p-3.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none transition-colors"
+            />
+          </div>
 
-        <Card>
-          <div className="flex items-center gap-3">
-            <MapPin className="size-5 text-ink-muted" />
-            <p className="text-xs text-ink-muted">Lokasi otomatis terlampir jika tersedia</p>
+          <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
+            <MapPin className="size-4 text-brand" />
+            <span>Lokasi GPS otomatis dilampirkan</span>
           </div>
         </Card>
 
-        <Button size="lg" loading={submitting} onClick={submit} fullWidth>
-          {done ? 'Laporan Terkirim' : 'Kirim Laporan'}
+        <Button
+          size="lg"
+          loading={submitting}
+          disabled={done}
+          onClick={submit}
+          fullWidth
+          className="h-14 rounded-2xl font-extrabold shadow-card-lg"
+        >
+          {done ? '✓ Laporan Berhasil Dikirim' : 'Kirim Laporan Insiden'}
         </Button>
-
-        {done && (
-          <Card className="border-ok/30 bg-ok-soft">
-            <p className="text-center text-sm font-semibold text-ok">Laporan berhasil dikirim.</p>
-          </Card>
-        )}
       </div>
     </AppShell>
   );

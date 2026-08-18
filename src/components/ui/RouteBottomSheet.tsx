@@ -20,6 +20,17 @@ interface RouteBottomSheetProps {
   onOpenDetail?: (deliveryId: string) => void;
 }
 
+function formatRouteSummary(route: OptimizedRoute | null): string {
+  if (!route) return '';
+  const dist = Number.isFinite(route.totalDistanceMeters) && route.totalDistanceMeters > 0
+    ? ` · ${(route.totalDistanceMeters / 1000).toFixed(1)} km`
+    : '';
+  const dur = Number.isFinite(route.totalDurationSeconds) && route.totalDurationSeconds > 0
+    ? ` · ~${Math.round(calibrateDurationSeconds(route.totalDurationSeconds) / 60)} mnt`
+    : '';
+  return `${dist}${dur}`;
+}
+
 export function RouteBottomSheet({
   route,
   loading,
@@ -39,25 +50,21 @@ export function RouteBottomSheet({
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-ink">Rute Pengiriman</p>
-            <p className="mt-0.5 text-xs tabular-nums text-ink-muted">
-              {stops.length} titik pemberhentian
-              {route
-                ? ` · ~${(route.totalDistanceMeters / 1000).toFixed(1)} km` +
-                  (route.totalDurationSeconds ? ` · ~${Math.round(calibrateDurationSeconds(route.totalDurationSeconds) / 60)} menit` : '')
-                : ''}
+            <p className="text-sm font-bold text-ink">Rute Pengiriman</p>
+            <p className="mt-0.5 text-xs font-semibold tabular-nums text-ink-muted">
+              {stops.length} titik pemberhentian{formatRouteSummary(route)}
             </p>
           </div>
-          <Button variant="secondary" size="sm" loading={optimizing} disabled={loading || stops.length === 0} onClick={onOptimize}>
-            <Navigation className="size-4" /> Optimalkan
+          <Button variant="secondary" size="sm" loading={optimizing} disabled={loading || stops.length === 0} onClick={onOptimize} className="rounded-xl font-bold">
+            <Navigation className="size-3.5 mr-1" /> Optimalkan
           </Button>
         </div>
 
         {loading && !route ? (
           <div className="flex flex-col gap-2" aria-busy="true" aria-label="Memuat rute">
             {[0, 1, 2].map((n) => (
-              <div key={n} className="flex items-center gap-3 rounded-[20px] bg-raised p-4 shadow-card">
-                <Skeleton className="size-8 shrink-0 rounded-full" />
+              <div key={n} className="flex items-center gap-3 rounded-2xl bg-raised/80 p-3.5 shadow-card">
+                <Skeleton className="size-8 shrink-0 rounded-xl" />
                 <div className="flex flex-1 flex-col gap-2">
                   <Skeleton className="h-4 w-36" />
                   <Skeleton className="h-3 w-48" />
@@ -66,8 +73,8 @@ export function RouteBottomSheet({
             ))}
           </div>
         ) : stops.length === 0 ? (
-          <Card>
-            <p className="py-4 text-center text-sm text-ink-muted">Tidak ada titik pengiriman untuk hari ini.</p>
+          <Card className="rounded-2xl border-dashed py-6 text-center">
+            <p className="text-sm text-ink-muted">Tidak ada titik pengiriman untuk hari ini.</p>
           </Card>
         ) : (
           <div className="flex flex-col gap-2">
@@ -76,16 +83,16 @@ export function RouteBottomSheet({
                 key={s.deliveryId}
                 interactive
                 onClick={() => onSelectStop(i)}
-                className={i === activeStopIndex ? 'ring-1 ring-brand' : ''}
+                className={i === activeStopIndex ? 'ring-2 ring-brand bg-brand-soft/20 border-brand/40' : 'bg-surface hover:bg-raised'}
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand text-on-accent text-sm font-bold">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-brand text-on-accent text-xs font-bold shadow-sm">
                     {i + 1}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-ink">{s.customerName ?? 'Pelanggan'}</p>
+                    <p className="truncate text-sm font-bold text-ink">{s.customerName ?? 'Pelanggan'}</p>
                     {route && (
-                      <p className="mt-0.5 text-[11px] tabular-nums text-ink-muted">
+                      <p className="mt-0.5 text-[11px] font-medium tabular-nums text-ink-muted">
                         {legSummary(route, i)}
                       </p>
                     )}
@@ -97,7 +104,7 @@ export function RouteBottomSheet({
                       e.stopPropagation();
                       onOpenDetail?.(s.deliveryId);
                     }}
-                    className="shrink-0"
+                    className="shrink-0 h-9 px-2.5 text-xs rounded-xl"
                   >
                     Detail
                   </Button>
@@ -108,7 +115,7 @@ export function RouteBottomSheet({
                         e.stopPropagation();
                         onStartNavigation?.(i);
                       }}
-                      className="shrink-0 gap-1.5 font-bold shadow-card"
+                      className="shrink-0 h-9 px-3 gap-1.5 font-bold shadow-card rounded-xl"
                     >
                       <Navigation className="size-3.5" />
                       Navigasi
@@ -121,11 +128,11 @@ export function RouteBottomSheet({
         )}
 
         {route?.source && (
-          <p className="px-1 text-[10px] text-ink-muted">
-            {route.source === 'ors-optimization' && 'Dioptimalkan via jalan asli (ORS)'}
-            {route.source === 'local-heuristic' && 'Dioptimalkan lokal (estimasi jarak udara + jalan sebagian)'}
-            {route.source === 'osrm' && 'Rute via OSRM (jalan publik)'}
-            {route.source === 'straight-line-fallback' && 'Rute perkiraan (offline, jarak udara)'}
+          <p className="px-1 text-[10px] text-ink-muted text-center">
+            {route.source === 'ors-optimization' && '⚡ Dioptimalkan via jalan asli (ORS)'}
+            {route.source === 'local-heuristic' && '⚡ Dioptimalkan lokal (estimasi jarak udara)'}
+            {route.source === 'osrm' && '⚡ Rute via OSRM (jalan publik)'}
+            {route.source === 'straight-line-fallback' && '⚡ Rute perkiraan (offline)'}
           </p>
         )}
       </div>
@@ -137,7 +144,11 @@ function legSummary(route: OptimizedRoute, i: number): string {
   const leg = route.legs[i];
   if (!leg) return '';
   const parts: string[] = [];
-  if (leg.distanceMeters > 0) parts.push(`${(leg.distanceMeters / 1000).toFixed(1)} km`);
-  if (leg.durationSeconds > 0) parts.push(`${Math.round(calibrateDurationSeconds(leg.durationSeconds) / 60)} menit`);
+  if (Number.isFinite(leg.distanceMeters) && leg.distanceMeters > 0) {
+    parts.push(`${(leg.distanceMeters / 1000).toFixed(1)} km`);
+  }
+  if (Number.isFinite(leg.durationSeconds) && leg.durationSeconds > 0) {
+    parts.push(`${Math.round(calibrateDurationSeconds(leg.durationSeconds) / 60)} menit`);
+  }
   return parts.join(' · ');
 }

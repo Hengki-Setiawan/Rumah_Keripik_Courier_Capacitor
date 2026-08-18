@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, CreditCard, Bell } from 'lucide-react';
+import { MapPin, Phone, MessageCircle, User, Wallet, Package, Hash, Scale, CreditCard, Bell, Camera, XCircle } from 'lucide-react';
 import { AppShell } from '@/components/AppShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { SwipeAction } from '@/components/ui/SwipeAction';
 import { useDeliveryDetail, invalidateDeliveries } from '@/hooks/use-deliveries';
 import { useDeliveryStore } from '@/stores/delivery-store';
 import { apiRequest } from '@/lib/api-client';
 import { enqueueAction } from '@/lib/sync/offline-queue';
-import { formatCurrency, formatDateTime } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
 import { hapticImpact, hapticNotification } from '@/lib/haptics';
 import { toast } from '@/stores/toast-store';
 
@@ -28,16 +29,22 @@ export default function DeliveryDetail() {
   if (isLoading && !delivery) {
     return (
       <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}>
-        <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat detail pengiriman">
-          <Skeleton className="h-24 w-full rounded-[20px]" />
-          <Skeleton className="h-28 w-full rounded-[20px]" />
-          <Skeleton className="h-24 w-full rounded-[20px]" />
+        <div className="flex flex-col gap-3" aria-busy="true" aria-label="Memuat detail pengiriman">
+          <Skeleton className="h-28 w-full rounded-3xl" />
+          <Skeleton className="h-44 w-full rounded-3xl" />
+          <Skeleton className="h-32 w-full rounded-3xl" />
         </div>
       </AppShell>
     );
   }
   if (!delivery) {
-    return <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}><Card><p className="text-center text-sm text-alert py-6">Pengiriman tidak ditemukan.</p></Card></AppShell>;
+    return (
+      <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}>
+        <Card className="rounded-3xl py-8 text-center">
+          <p className="text-sm font-semibold text-alert">Pengiriman tidak ditemukan.</p>
+        </Card>
+      </AppShell>
+    );
   }
 
   async function transition(status: 'complete') {
@@ -86,160 +93,167 @@ export default function DeliveryDetail() {
   return (
     <AppShell title="Detail Pengiriman" onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
-        <Card elevation={2}>
+        {/* Single Fluid Frameless Container */}
+        <Card elevation={2} className="relative overflow-hidden rounded-3xl border border-white/10 bg-surface/90 shadow-frameless backdrop-blur-xl p-5">
+          <div className="absolute -right-8 -top-8 size-36 rounded-full bg-brand/15 blur-xl pointer-events-none" />
+          
+          {/* Header Section */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-ink-muted">Kode Pesanan</p>
-              <p className="text-lg font-bold text-brand">{delivery.kodePesanan}</p>
+              <p className="text-xs font-semibold text-ink-muted">Kode Pesanan</p>
+              <p className="text-xl font-extrabold text-brand tracking-tight">{delivery.kodePesanan}</p>
             </div>
             <StatusBadge status={delivery.status} />
           </div>
-          {delivery.totalBayar > 0 && (
-            <div className="mt-2 flex items-center gap-1.5 text-sm text-ink-secondary">
-              <Wallet className="size-4 text-ink-muted" /> {formatCurrency(delivery.totalBayar)}
-            </div>
-          )}
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-muted">
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-y border-border-subtle/50 py-3 text-xs text-ink-secondary">
+            {delivery.totalBayar > 0 && (
+              <span className="flex items-center gap-1 font-bold text-ink">
+                <Wallet className="size-4 text-brand" /> {formatCurrency(delivery.totalBayar)}
+              </span>
+            )}
             {delivery.routePoints.length > 0 && (
               <span className="flex items-center gap-1">
-                <Hash className="size-3" /> Rute ke-{delivery.routePoints[0].sequenceNo} dari {delivery.routePoints.length}
+                <Hash className="size-3 text-ink-muted" /> Stop ke-{delivery.routePoints[0].sequenceNo}
               </span>
             )}
             {delivery.totalQty ? (
               <span className="flex items-center gap-1">
-                <Package className="size-3" /> {delivery.totalQty} item
+                <Package className="size-3 text-ink-muted" /> {delivery.totalQty} item
               </span>
             ) : null}
             {delivery.totalBeratGram ? (
               <span className="flex items-center gap-1">
-                <Scale className="size-3" /> {formatBerat(delivery.totalBeratGram)}
+                <Scale className="size-3 text-ink-muted" /> {formatBerat(delivery.totalBeratGram)}
               </span>
             ) : null}
           </div>
-        </Card>
 
-        {(delivery.status === 'Siap_Dikirim' || delivery.status === 'Dalam_Pengiriman') && (
-          <div className="grid grid-cols-2 gap-2">
-            <Button size="md" variant="secondary" loading={notifyBusy === 'arriving'} disabled={notifyBusy !== null} onClick={() => notifyWa('arriving')} fullWidth>
-              <Bell className="mr-1.5 size-4" /> Segera Tiba
-            </Button>
-            <Button size="md" variant="secondary" loading={notifyBusy === 'arrived'} disabled={notifyBusy !== null} onClick={() => notifyWa('arrived')} fullWidth>
-              <Bell className="mr-1.5 size-4" /> Sudah Sampai
-            </Button>
-          </div>
-        )}
-
-        <Card>
-          <p className="mb-2 text-xs font-semibold text-ink-muted">Penerima</p>
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-highest text-ink-secondary">
-              <User className="size-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-ink">{delivery.namaPenerima || 'Penerima'}</p>
-              <p className="mt-0.5 text-xs text-ink-muted">{delivery.noHpPenerima || '-'}</p>
-            </div>
-          </div>
-          <div className="mt-3 flex items-start gap-2">
-            <MapPin className="mt-0.5 size-4 shrink-0 text-ink-muted" />
-            <p className="text-sm text-ink-secondary">{delivery.alamatPenerima || 'Alamat tidak tersedia'}</p>
-          </div>
-          {delivery.catatan && <p className="mt-2 text-xs text-ink-muted">Catatan: {delivery.catatan}</p>}
-          <p className="mt-1 text-[11px] text-ink-muted">Dipesan {formatDateTime(delivery.createdAt)}</p>
-        </Card>
-
-        {delivery.items && delivery.items.length > 0 && (
-          <Card>
-            <div className="mb-2 flex items-center gap-1.5">
-              <Package className="size-4 text-ink-muted" />
-              <p className="text-xs font-semibold text-ink-muted">Rincian Pesanan</p>
-            </div>
-            <div className="flex flex-col gap-2">
-              {delivery.items.map((item, idx) => (
-                <div key={idx} className="flex items-start justify-between gap-2 border-b border-border-subtle pb-2 last:border-0 last:pb-0">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink">
-                      {item.namaProduk || 'Produk'}
-                      {item.varian ? <span className="text-ink-muted"> · {item.varian}</span> : null}
-                    </p>
-                    <p className="text-xs text-ink-muted">
-                      {item.qty} × {formatCurrency(item.harga)}
-                      {item.beratGram ? ` · ${item.beratGram} g` : ''}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-sm font-semibold tabular-nums text-ink">{formatCurrency(item.subtotal)}</p>
+          {/* Recipient Section */}
+          <div className="mt-4">
+            <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wider">Penerima Paket</p>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-highest text-ink shadow-inner font-bold">
+                  {delivery.namaPenerima?.charAt(0) || <User className="size-4" />}
                 </div>
-              ))}
-            </div>
-          </Card>
-        )}
-
-        {delivery.noHpPenerima && (
-          <div className="grid grid-cols-2 gap-3">
-            <a
-              href={`tel:${delivery.noHpPenerima}`}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-border-default bg-raised py-3 text-sm font-semibold text-ink hover:border-brand/50"
-            >
-              <Phone className="size-4" /> Telepon
-            </a>
-            <a
-              href={`https://wa.me/${delivery.noHpPenerima.replace(/^0/, '62')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 rounded-2xl border border-ok/40 bg-ok-soft py-3 text-sm font-semibold text-ok hover:border-ok/70"
-            >
-              <MessageCircle className="size-4" /> WhatsApp
-            </a>
-          </div>
-        )}
-
-        <Card>
-          <div className="flex flex-col gap-2 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-ink-muted">
-                <CreditCard className="size-4" /> Pembayaran
-              </span>
-              <span className="font-medium text-ink">
-                {paymentLabel(delivery.statusPembayaran || delivery.paymentStatus)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-ink-muted">Total Item</span>
-              <span className="font-medium text-ink">{delivery.totalQty ?? delivery.items?.length ?? 0} item</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-ink-muted">Total Berat</span>
-              <span className="font-medium text-ink">
-                {delivery.totalBeratGram ? formatBerat(delivery.totalBeratGram) : '-'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-ink-muted">Subtotal</span>
-              <span className="font-semibold tabular-nums text-brand">{formatCurrency(delivery.totalBayar)}</span>
-            </div>
-            {delivery.notes && (
-              <div className="border-t border-border-subtle pt-2 text-xs text-ink-muted">
-                Catatan kurir: {delivery.notes}
+                <div>
+                  <p className="text-sm font-bold text-ink">{delivery.namaPenerima || 'Penerima'}</p>
+                  <p className="text-xs text-ink-muted">{delivery.noHpPenerima || '-'}</p>
+                </div>
               </div>
-            )}
+              {delivery.noHpPenerima && (
+                <div className="flex items-center gap-1.5">
+                  <a
+                    href={`tel:${delivery.noHpPenerima}`}
+                    aria-label="Telepon penerima"
+                    className="flex size-9 items-center justify-center rounded-xl bg-raised border border-border-subtle text-ink shadow-sm active:scale-95 transition-all"
+                  >
+                    <Phone className="size-4" />
+                  </a>
+                  <a
+                    href={`https://wa.me/${delivery.noHpPenerima.replace(/^0/, '62')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Chat WhatsApp penerima"
+                    className="flex size-9 items-center justify-center rounded-xl bg-ok-soft text-ok border border-ok/30 shadow-sm active:scale-95 transition-all"
+                  >
+                    <MessageCircle className="size-4" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 flex items-start gap-2 rounded-2xl bg-raised/60 p-3 text-xs text-ink-secondary">
+              <MapPin className="mt-0.5 size-4 shrink-0 text-brand" />
+              <div>
+                <p className="font-semibold text-ink">{delivery.alamatPenerima || 'Alamat tidak tersedia'}</p>
+                {delivery.catatan && <p className="mt-1 text-ink-muted italic">Catatan: {delivery.catatan}</p>}
+              </div>
+            </div>
+          </div>
+
+          {/* WhatsApp One-Tap Quick Notify Pills */}
+          {(delivery.status === 'Siap_Dikirim' || delivery.status === 'Dalam_Pengiriman') && (
+            <div className="mt-3.5 grid grid-cols-2 gap-2">
+              <button
+                disabled={notifyBusy !== null}
+                onClick={() => notifyWa('arriving')}
+                className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-brand/25 bg-brand-soft px-3 text-xs font-bold text-brand-pressed active:scale-95 transition-all disabled:opacity-50"
+              >
+                <Bell className="size-3.5" />
+                <span>{notifyBusy === 'arriving' ? 'Mengirim...' : 'Segera Tiba'}</span>
+              </button>
+              <button
+                disabled={notifyBusy !== null}
+                onClick={() => notifyWa('arrived')}
+                className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-brand/25 bg-brand-soft px-3 text-xs font-bold text-brand-pressed active:scale-95 transition-all disabled:opacity-50"
+              >
+                <Bell className="size-3.5" />
+                <span>{notifyBusy === 'arrived' ? 'Mengirim...' : 'Sudah Sampai'}</span>
+              </button>
+            </div>
+          )}
+
+          {/* Items & Payment Section */}
+          {delivery.items && delivery.items.length > 0 && (
+            <div className="mt-4 border-t border-border-subtle/50 pt-3">
+              <p className="text-[11px] font-bold text-ink-muted uppercase tracking-wider mb-2">Rincian Barang</p>
+              <div className="flex flex-col gap-2">
+                {delivery.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs py-1">
+                    <div>
+                      <p className="font-semibold text-ink">
+                        {item.namaProduk || 'Produk'}
+                        {item.varian ? <span className="text-ink-muted"> ({item.varian})</span> : null}
+                      </p>
+                      <p className="text-ink-muted">{item.qty} pcs &middot; {formatCurrency(item.harga)}</p>
+                    </div>
+                    <span className="font-bold tabular-nums text-ink">{formatCurrency(item.subtotal)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-3 pt-2.5 border-t border-border-subtle/50 flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1 text-ink-muted">
+              <CreditCard className="size-3.5" /> {paymentLabel(delivery.statusPembayaran || delivery.paymentStatus)}
+            </span>
+            <span className="font-extrabold text-sm text-brand">{formatCurrency(delivery.totalBayar)}</span>
           </div>
         </Card>
 
-        <div className="flex flex-col gap-2">
-          {(delivery.status === 'Siap_Dikirim' || delivery.status === 'Dalam_Pengiriman') && (
-            <>
-              <Button size="lg" variant="success" loading={busy} onClick={() => transition('complete')} fullWidth>
-                Selesaikan Pengiriman
+        {/* Action Controls: Swipe-to-Action & Secondary Actions */}
+        {(delivery.status === 'Siap_Dikirim' || delivery.status === 'Dalam_Pengiriman') && (
+          <div className="flex flex-col gap-3 mt-1">
+            <SwipeAction
+              label="Geser untuk Selesaikan"
+              variant="success"
+              loading={busy}
+              onComplete={() => transition('complete')}
+            />
+
+            <div className="grid grid-cols-2 gap-2.5">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => navigate(`/delivery/${deliveryId}/proof`)}
+                className="rounded-2xl font-bold border border-white/10"
+              >
+                <Camera className="mr-1.5 size-4" /> Foto / Bukti
               </Button>
-              <Button size="lg" variant="secondary" onClick={() => navigate(`/delivery/${deliveryId}/proof`)} fullWidth>
-                Foto Penerima (opsional)
+              <Button
+                variant="danger"
+                size="md"
+                onClick={() => navigate(`/delivery/${deliveryId}/proof?fail=1`)}
+                className="rounded-2xl font-bold bg-alert/15 text-alert border border-alert/30 hover:bg-alert/25"
+              >
+                <XCircle className="mr-1.5 size-4" /> Tandai Gagal
               </Button>
-              <Button size="lg" variant="danger" onClick={() => navigate(`/delivery/${deliveryId}/proof?fail=1`)} fullWidth>
-                Tandai Gagal
-              </Button>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
       </div>
     </AppShell>
   );

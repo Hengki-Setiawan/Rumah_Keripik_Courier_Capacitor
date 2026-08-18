@@ -21,9 +21,9 @@ export default function Stats() {
       title="Statistik"
       activeTab="stats"
       onTabChange={(t) => navigate(t === 'beranda' ? '/' : `/${t}`)}
-      onRefresh={() =>
-        queryClient.invalidateQueries({ queryKey: ['stats', period] })
-      }
+      onRefresh={async () => {
+        await queryClient.refetchQueries({ queryKey: ['stats', period], type: 'active' });
+      }}
     >
       <div className="flex gap-2 pb-2">
         <FilterPill label="7 Hari" active={period === 'week'} onClick={() => setPeriod('week')} />

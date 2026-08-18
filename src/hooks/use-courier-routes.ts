@@ -23,8 +23,8 @@ export function useCourierRoutes() {
       const res = await apiRequest<CourierRoutesResponse>('/api/courier/routes', { method: 'GET' });
       return res.data;
     },
-    staleTime: 30_000,
-    refetchInterval: 45_000,
+    staleTime: 5_000,
+    refetchInterval: 20_000,
   });
 }
 

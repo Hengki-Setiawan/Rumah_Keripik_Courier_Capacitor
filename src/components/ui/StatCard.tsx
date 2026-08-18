@@ -23,14 +23,19 @@ const toneClasses: Record<StatTone, { chip: string; text: string }> = {
 export function StatCard({ label, value, icon, tone = 'amber', hint, className }: StatCardProps) {
   const t = toneClasses[tone];
   return (
-    <div className={cn('rounded-[20px] bg-raised p-4 flex flex-col gap-3 shadow-card', className)}>
-      <div className={cn('flex size-10 items-center justify-center rounded-full', t.chip, t.text)}>{icon}</div>
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-3xl border border-white/8 bg-surface/85 p-4 flex flex-col gap-2.5 shadow-card backdrop-blur-md transition-all hover:bg-raised/90',
+        className,
+      )}
+    >
+      <div className={cn('flex size-10 items-center justify-center rounded-2xl shadow-sm', t.chip, t.text)}>
+        {icon}
+      </div>
       <div>
-        <span className="text-2xl font-bold tracking-tight tabular-nums text-ink">{value}</span>
-        <p className="truncate mt-0.5 text-sm text-ink-secondary">{label}</p>
-        {/* Slot caption tingginya SELALU dicadangkan supaya grid 2x2 rata terlepas dari
-            kartu yang punya hint vs tidak (R4.1.2). */}
-        <p className="min-h-[1.1rem] text-[11px] text-ink-muted">{hint ?? '\u00A0'}</p>
+        <span className="text-2xl font-black tracking-tight tabular-nums text-ink">{value}</span>
+        <p className="truncate mt-0.5 text-xs font-semibold text-ink-secondary">{label}</p>
+        <p className="min-h-[1.1rem] text-[11px] font-medium text-ink-muted">{hint ?? '\u00A0'}</p>
       </div>
     </div>
   );

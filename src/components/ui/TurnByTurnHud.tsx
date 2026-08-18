@@ -52,29 +52,29 @@ export function TurnByTurnHud({ leg, position, className }: TurnByTurnHudProps) 
   return (
     <div
       className={cn(
-        'pointer-events-none absolute inset-x-4 top-[calc(env(safe-area-inset-top,0px)+4.375rem)] z-10 flex items-center gap-3 rounded-2xl bg-surface/95 px-4 py-3 shadow-card backdrop-blur',
+        'pointer-events-none absolute inset-x-4 top-[calc(env(safe-area-inset-top,0px)+4.125rem)] z-20 flex items-center gap-3.5 rounded-3xl border border-white/10 bg-surface/90 px-4 py-3.5 shadow-floating backdrop-blur-xl',
         className,
       )}
     >
-      <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-brand text-on-accent shadow-card">
-        <Icon className="size-7" style={display.rotationDeg !== 180 ? { transform: `rotate(${display.rotationDeg}deg)` } : undefined} />
+      <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-accent shadow-[0_4px_16px_rgba(197,90,43,0.45)]">
+        <Icon className="size-6" style={display.rotationDeg !== 180 ? { transform: `rotate(${display.rotationDeg}deg)` } : undefined} />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-bold text-ink">{display.label}</p>
         {!arrived && upcoming.step.roadName && (
-          <p className="truncate text-xs text-ink-secondary">ke {upcoming.step.roadName}</p>
+          <p className="truncate text-xs font-medium text-ink-secondary">ke {upcoming.step.roadName}</p>
         )}
-        <p className="text-xs font-semibold text-brand">
-          {arrived ? 'Sebentar lagi tiba' : `${display.label} dalam ${formatMeters(upcoming.distanceM)}`}
+        <p className="text-xs font-bold text-brand">
+          {arrived ? '🎉 Sebentar lagi tiba di tujuan' : `${display.label} dalam ${formatMeters(upcoming.distanceM)}`}
         </p>
       </div>
       <button
         type="button"
         onClick={() => void toggleMuted()}
         aria-label={muted ? 'Aktifkan suara' : 'Bisukan suara'}
-        className="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-full bg-ink/5 text-ink-secondary transition-colors active:bg-ink/10"
+        className="pointer-events-auto flex size-10 shrink-0 items-center justify-center rounded-2xl bg-raised border border-border-subtle text-ink-secondary transition-all active:scale-95 hover:text-ink"
       >
-        {muted ? <VolumeX className="size-5" /> : <Volume2 className="size-5" />}
+        {muted ? <VolumeX className="size-4 text-alert" /> : <Volume2 className="size-4 text-brand" />}
       </button>
     </div>
   );

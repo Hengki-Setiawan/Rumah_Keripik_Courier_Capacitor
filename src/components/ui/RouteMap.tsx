@@ -268,17 +268,32 @@ export function RouteMap({
       >
         {geojsonLine && (
           <Source id="route-line" type="geojson" data={geojsonLine}>
+            {/* Neon Glow Halo */}
+            <Layer
+              id="route-line-glow"
+              type="line"
+              filter={['!=', ['get', 'fallback'], true]}
+              paint={{
+                'line-color': '#f59e0b',
+                'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 12, 18, 20],
+                'line-blur': 6,
+                'line-opacity': 0.4,
+              }}
+              layout={{ 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' }}
+            />
+            {/* Dark/White Sharp Outline Casing */}
             <Layer
               id="route-line-outline"
               type="line"
               filter={['!=', ['get', 'fallback'], true]}
               paint={{
-                'line-color': globalTokens.white,
+                'line-color': '#ffffff',
                 'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 12, 8, 18, 13],
-                'line-opacity': 0.9,
+                'line-opacity': 0.95,
               }}
               layout={{ 'line-cap': 'round', 'line-join': 'round', visibility: 'visible' }}
             />
+            {/* Main Vibrant Route Core */}
             <Layer
               id="route-line-main"
               type="line"

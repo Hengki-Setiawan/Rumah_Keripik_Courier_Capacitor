@@ -8,7 +8,7 @@ import { FilterPill } from '@/components/ui/FilterPill';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { useTodayDeliveries, invalidateDeliveries } from '@/hooks/use-deliveries';
+import { useTodayDeliveries, invalidateDeliveries, deliveriesKeys } from '@/hooks/use-deliveries';
 import { formatTime } from '@/lib/format';
 
 type Filter = 'all' | 'sent' | 'failed';
@@ -37,7 +37,10 @@ export default function History() {
       title="Riwayat"
       activeTab="history"
       onTabChange={(t) => navigate(t === 'beranda' ? '/' : `/${t}`)}
-      onRefresh={() => invalidateDeliveries(queryClient)}
+      onRefresh={async () => {
+        invalidateDeliveries(queryClient);
+        await queryClient.refetchQueries({ queryKey: deliveriesKeys.all, type: 'active' });
+      }}
     >
       <div className="flex gap-2 overflow-x-auto pb-2">
         <FilterPill label="Semua" active={filter === 'all'} onClick={() => setFilter('all')} count={counts.all} />
