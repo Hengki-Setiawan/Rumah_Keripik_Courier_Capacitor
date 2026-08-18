@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Spinner } from '@/components/ui/Button';
+import { ArrowDown, RefreshCw } from 'lucide-react';
+import { hapticImpact } from '@/lib/haptics';
 
 interface PullToRefreshProps {
   onRefresh: () => void | Promise<void>;
@@ -8,17 +9,9 @@ interface PullToRefreshProps {
   className?: string;
 }
 
-const THRESHOLD = 64;
-const RESISTANCE = 0.5;
+const THRESHOLD = 65;
+const RESISTANCE = 0.45;
 
-// Pull-to-refresh berbasis touch event (bukan native), karena app berjalan di
-// Capacitor WebView — bukan React Native.
-//
-// PENTING: React menempelkan touchstart/touchmove sebagai PASSIVE listener di
-// root, sehingga e.preventDefault() di handler React TIDAK berfungsi (gesture
-// diteruskan ke native scroll/overscroll). Karena itu handler dipasang lewat
-// addEventListener native dengan { passive: false } via ref, hanya aktif saat
-// scroll di posisi paling atas (scrollY === 0).
 export function PullToRefresh({ onRefresh, children, disabled, className }: PullToRefreshProps) {
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,6 +22,7 @@ export function PullToRefresh({ onRefresh, children, disabled, className }: Pull
   const refreshingRef = useRef(false);
   const onRefreshRef = useRef(onRefresh);
   const disabledRef = useRef(disabled);
+  const hasTriggeredHaptic = useRef(false);
 
   useEffect(() => {
     onRefreshRef.current = onRefresh;
@@ -47,12 +41,18 @@ export function PullToRefresh({ onRefresh, children, disabled, className }: Pull
     refreshingRef.current = true;
     setRefreshing(true);
     applyPull(THRESHOLD);
+    void hapticImpact('medium');
+
     try {
       await onRefreshRef.current();
+      void hapticImpact('light');
+    } catch {
+      // Error handled by query/toast
     } finally {
       refreshingRef.current = false;
       setRefreshing(false);
       applyPull(0);
+      hasTriggeredHaptic.current = false;
     }
   }, [applyPull]);
 
@@ -60,14 +60,20 @@ export function PullToRefresh({ onRefresh, children, disabled, className }: Pull
     const root = rootRef.current;
     if (!root) return;
 
+    const getScrollTop = () =>
+      window.scrollY ||
+      document.documentElement.scrollTop ||
+      document.body.scrollTop ||
+      0;
+
     const onTouchStart = (e: TouchEvent) => {
       if (disabledRef.current || refreshingRef.current) return;
-      // Hanya mulai pull saat sudah berada di posisi paling atas.
-      if (window.scrollY > 0) return;
+      if (getScrollTop() > 5) return;
       const t = e.touches[0];
       if (!t) return;
       pulling.current = true;
       startY.current = t.clientY;
+      hasTriggeredHaptic.current = false;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -75,34 +81,45 @@ export function PullToRefresh({ onRefresh, children, disabled, className }: Pull
       const t = e.touches[0];
       if (!t) return;
       const dy = t.clientY - startY.current;
-      // Tarik ke atas (scroll normal) — serahkan ke native scroll.
-      if (dy <= 0 || window.scrollY > 0) {
+
+      if (dy <= 0 || getScrollTop() > 5) {
         pulling.current = false;
         startY.current = null;
         applyPull(0);
         return;
       }
-      const next = Math.min(dy * RESISTANCE, THRESHOLD * 1.5);
+
+      const next = Math.min(dy * RESISTANCE, THRESHOLD * 1.6);
       applyPull(next);
-      e.preventDefault();
+
+      if (next >= THRESHOLD && !hasTriggeredHaptic.current) {
+        hasTriggeredHaptic.current = true;
+        void hapticImpact('light');
+      }
+
+      if (e.cancelable) {
+        e.preventDefault();
+      }
     };
 
     const onTouchEnd = () => {
       if (!pulling.current) return;
       pulling.current = false;
       startY.current = null;
+
       if (!refreshingRef.current && pullRef.current >= THRESHOLD) {
         void trigger();
       } else {
         applyPull(0);
+        hasTriggeredHaptic.current = false;
       }
     };
 
-    // passive:false → preventDefault() benar-benar menahan scroll/overscroll.
     root.addEventListener('touchstart', onTouchStart, { passive: true });
     root.addEventListener('touchmove', onTouchMove, { passive: false });
     root.addEventListener('touchend', onTouchEnd, { passive: true });
     root.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
     return () => {
       root.removeEventListener('touchstart', onTouchStart);
       root.removeEventListener('touchmove', onTouchMove);
@@ -111,28 +128,39 @@ export function PullToRefresh({ onRefresh, children, disabled, className }: Pull
     };
   }, [applyPull, trigger]);
 
+  const progress = Math.min(1, pull / THRESHOLD);
+
   return (
-    // touchAction default (auto): browser hanya mengklaim gesture jika benar-
-    // benar ada konten yang bisa discroll. Di posisi top, pull ke bawah adalah
-    // overscroll yang sudah dimatikan via `overscroll-behavior: none` di body,
-    // jadi touchmove tetap diteruskan ke JS tanpa touchcancel prematur.
     <div ref={rootRef} className={className}>
+      {/* Visual Floating Indicator Capsule */}
       <div
-        className="pointer-events-none absolute inset-x-0 flex justify-center transition-transform duration-200"
-        style={{ transform: `translateY(${pull}px)` }}
+        className="pointer-events-none absolute inset-x-0 -top-12 z-30 flex justify-center transition-transform duration-150 ease-out"
+        style={{
+          transform: `translateY(${refreshing ? 60 : pull > 10 ? pull * 0.9 : 0}px)`,
+          opacity: refreshing || pull > 10 ? 1 : 0,
+        }}
         aria-hidden="true"
       >
-        <div
-          className={`mt-1 flex size-9 items-center justify-center rounded-full bg-raised shadow-card border border-border-subtle transition-opacity ${
-            refreshing || pull > 0 ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          <Spinner className={`size-5 text-brand ${refreshing ? '' : 'animate-pulse'}`} />
+        <div className="flex size-10 items-center justify-center rounded-2xl border border-white/20 bg-surface/95 shadow-floating backdrop-blur-xl">
+          {refreshing ? (
+            <RefreshCw className="size-5 text-brand animate-spin" />
+          ) : (
+            <ArrowDown
+              className="size-5 text-brand transition-transform duration-200"
+              style={{
+                transform: `rotate(${progress >= 1 ? 180 : progress * 180}deg)`,
+                opacity: 0.4 + progress * 0.6,
+              }}
+            />
+          )}
         </div>
       </div>
+
       <div
-        className="transition-transform duration-200"
-        style={{ transform: refreshing ? 'translateY(48px)' : `translateY(${pull}px)` }}
+        className="transition-transform duration-200 ease-out"
+        style={{
+          transform: refreshing ? 'translateY(48px)' : `translateY(${pull * 0.6}px)`,
+        }}
       >
         {children}
       </div>

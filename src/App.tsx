@@ -120,6 +120,7 @@ function ForegroundRefresher() {
     const h = CapApp.addListener('appStateChange', (state) => {
       if (state.isActive) {
         void queryClient.invalidateQueries();
+        void queryClient.refetchQueries({ type: 'active' });
       }
     });
     h.then((listener) => {

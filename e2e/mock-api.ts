@@ -277,5 +277,5 @@ export async function loginAs(page: Page, pin = '123456'): Promise<void> {
   for (const digit of pin) {
     await page.getByRole('button', { name: digit, exact: true }).click();
   }
-  await page.getByText('Selamat datang,').waitFor();
+  await page.getByText('Selamat bertugas,').waitFor();
 }

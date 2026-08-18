@@ -122,14 +122,16 @@ export default function LockScreen() {
         <p className="text-sm text-ink-secondary">{subtitle}</p>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3.5">
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <div
             key={i}
             className={cn(
-              'size-3.5 rounded-full border transition-all duration-150',
-              i < pin.length ? 'scale-110 bg-brand border-brand' : 'border-ink-muted/40',
-              error && 'border-red-500',
+              'size-4 rounded-full border transition-all duration-200',
+              i < pin.length
+                ? 'scale-125 bg-brand border-brand shadow-[0_0_12px_rgba(197,90,43,0.8)]'
+                : 'border-ink-muted/30 bg-surface/50',
+              error && 'border-alert bg-alert shadow-[0_0_12px_rgba(220,38,38,0.8)] animate-shake',
             )}
           />
         ))}

@@ -90,60 +90,90 @@ export default function Proof() {
   }
 
   return (
-    <AppShell title={showFail ? 'Tandai Gagal' : 'Foto Penerima'} onBack={() => navigate(-1)}>
+    <AppShell title={showFail ? 'Tandai Gagal' : 'Bukti Serah Terima'} onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4">
-        <Card>
-          <p className="mb-2 text-xs font-semibold text-ink-muted">Foto Penerima (opsional)</p>
+        {/* Hero Photo / Camera Frame */}
+        <Card elevation={2} className="relative overflow-hidden rounded-3xl border border-white/10 bg-surface/90 shadow-frameless backdrop-blur-xl p-4">
+          <p className="mb-2.5 text-xs font-bold text-ink-muted uppercase tracking-wider">
+            {showFail ? 'Foto Kendala / Lokasi (opsional)' : 'Foto Paket / Penerima'}
+          </p>
+
           {photoDataUrl ? (
-            <img src={photoDataUrl} alt="Bukti" className="w-full rounded-xl" />
-          ) : (
-            <div className="flex aspect-video items-center justify-center rounded-xl border border-dashed border-border-default bg-raised text-ink-muted">
-              Belum ada foto
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-card">
+              <img src={photoDataUrl} alt="Bukti Serah Terima" className="w-full object-cover max-h-72" />
+              <div className="absolute bottom-2 right-2 rounded-xl bg-black/70 px-2.5 py-1 text-[11px] font-bold text-white backdrop-blur">
+                ✓ Terverifikasi
+              </div>
             </div>
+          ) : (
+            <button
+              onClick={takePhoto}
+              className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border-default bg-raised/50 text-ink-muted hover:border-brand/50 active:scale-[0.99] transition-all"
+            >
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-brand shadow-sm">
+                <Camera className="size-7" />
+              </div>
+              <span className="text-xs font-bold text-ink">Sentuh untuk Ambil Foto</span>
+              <span className="text-[11px] text-ink-muted">Kamera otomatis membubuhkan stempel waktu & GPS</span>
+            </button>
           )}
-          <Button variant="secondary" className="mt-3" fullWidth onClick={takePhoto}>
-            <Camera className="size-4" /> {photoDataUrl ? 'Ambil Ulang' : 'Ambil Foto'}
-          </Button>
+
+          {photoDataUrl && (
+            <Button variant="secondary" size="sm" className="mt-3 rounded-xl font-bold" fullWidth onClick={takePhoto}>
+              <Camera className="size-4 mr-1.5" /> Ambil Ulang Foto
+            </Button>
+          )}
+
           {!isNative && (
             <p className="mt-2 text-center text-[10px] text-ink-muted">
-              Mode web: foto diambil dari kamera browser bila tersedia.
+              Mode web preview: foto diproses langsung di peramban.
             </p>
           )}
         </Card>
 
+        {/* Note / Reason Form */}
         {!showFail ? (
-          <Card>
-            <p className="mb-2 text-xs font-semibold text-ink-muted">Catatan</p>
+          <Card className="rounded-3xl border border-white/10 bg-surface/90 p-4 shadow-card">
+            <p className="mb-2 text-xs font-bold text-ink-muted uppercase tracking-wider">Catatan Pengantaran</p>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Catatan tambahan (opsional)..."
+              placeholder="Contoh: Diterima oleh satpam / diletakkan di teras..."
               rows={2}
-              className="w-full rounded-xl border border-border-default bg-surface p-3 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none"
+              className="w-full rounded-2xl border border-border-subtle bg-raised/60 p-3.5 text-sm text-ink placeholder:text-ink-muted focus:border-brand focus:outline-none transition-colors"
             />
           </Card>
         ) : (
-          <Card>
-            <p className="mb-2 text-xs font-semibold text-ink-muted">Alasan Gagal</p>
+          <Card className="rounded-3xl border border-alert/30 bg-alert/5 p-4 shadow-card">
+            <p className="mb-2 text-xs font-bold text-alert uppercase tracking-wider">Alasan Pengiriman Gagal *</p>
             <textarea
               value={failReason}
               onChange={(e) => setFailReason(e.target.value)}
-              placeholder="Jelaskan alasan pengiriman gagal..."
+              placeholder="Jelaskan alasan pengiriman gagal (contoh: Rumah kosong / nomor tidak aktif)..."
               rows={3}
-              className="w-full rounded-xl border border-border-default bg-surface p-3 text-sm text-ink placeholder:text-ink-muted focus:border-alert focus:outline-none"
+              className="w-full rounded-2xl border border-alert/30 bg-surface p-3.5 text-sm text-ink placeholder:text-ink-muted focus:border-alert focus:outline-none transition-colors"
             />
           </Card>
         )}
 
-        <div className="flex flex-col gap-2">
-          <Button size="lg" loading={busy} onClick={() => complete(showFail)} fullWidth>
+        {/* Bottom Action Submit */}
+        <div className="mt-1">
+          <Button
+            size="lg"
+            variant={showFail ? 'danger' : 'success'}
+            loading={busy}
+            disabled={showFail && !failReason.trim()}
+            onClick={() => complete(showFail)}
+            fullWidth
+            className="h-14 rounded-2xl font-extrabold shadow-card-lg"
+          >
             {showFail ? (
               <>
-                <XCircle className="size-5" /> Kirim & Tandai Gagal
+                <XCircle className="size-5 mr-2" /> Konfirmasi Pengiriman Gagal
               </>
             ) : (
               <>
-                <CheckCircle2 className="size-5" /> Selesaikan Pengiriman
+                <CheckCircle2 className="size-5 mr-2" /> Selesaikan & Simpan Bukti
               </>
             )}
           </Button>
@@ -151,4 +181,4 @@ export default function Proof() {
       </div>
     </AppShell>
   );
-}
+}

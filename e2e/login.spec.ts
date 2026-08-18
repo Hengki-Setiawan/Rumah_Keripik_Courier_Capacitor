@@ -25,9 +25,9 @@ test('login PIN benar masuk ke dashboard', async ({ page }) => {
     await page.getByRole('button', { name: digit, exact: true }).click();
   }
 
-  await expect(page.getByText('Selamat datang,')).toBeVisible();
+  await expect(page.getByText('Selamat bertugas,')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rizky Kurir' })).toBeVisible();
-  await expect(page.getByText('Mulai Lacak Lokasi Real-Time')).toBeVisible();
+  await expect(page.getByText('Buka Peta Rute Pengiriman')).toBeVisible();
 });
 
 test('masuk ke dashboard langsung jika sesi tersimpan', async ({ page }) => {
@@ -44,6 +44,6 @@ test('masuk ke dashboard langsung jika sesi tersimpan', async ({ page }) => {
 
   await page.goto('/');
 
-  await expect(page.getByText('Selamat datang,')).toBeVisible();
+  await expect(page.getByText('Selamat bertugas,')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Rizky Kurir' })).toBeVisible();
 });

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Bell, Crosshair, LocateFixed, MapPin, RefreshCw, Route as RouteIcon, Timer } from 'lucide-react';
+import { ArrowLeft, Bell, MapPin, RefreshCw } from 'lucide-react';
 import { RouteMap } from '@/components/ui/RouteMap';
 import { RouteBottomSheet } from '@/components/ui/RouteBottomSheet';
 import { LiveNavigationHud } from '@/components/ui/LiveNavigationHud';
 import { TurnByTurnHud } from '@/components/ui/TurnByTurnHud';
-import { FAB } from '@/components/ui/FAB';
+import { MapLayersMenu } from '@/components/ui/MapLayersMenu';
 import { Button } from '@/components/ui/Button';
 import { openExternalNavigation } from '@/lib/openMaps';
 import { useOptimizedRoute } from '@/hooks/useOptimizedRoute';
@@ -350,62 +350,31 @@ export default function Route() {
         />
       )}
 
-      {/* Map action strip (R3.2): satu container tombol kontrol peta ╬ô├ç├╢ jarak seragam,
-          satu posisi kanan layar, alih-alih tiga FAB absolute terpisah. */}
-      <div className="absolute right-4 bottom-[calc(54dvh+0.5rem)] z-40 flex flex-col gap-3">
-        {activeLat != null && activeLng != null && !navigationMode && (
-          <FAB
-            icon={<Crosshair className="size-6" />}
-            ariaLabel="Navigasi ke titik aktif"
-            variant="overlay"
-            onClick={() => { void hapticImpact('light'); openExternalNavigation(activeLat, activeLng); }}
-          />
-        )}
-
+      {/* 1 Single Floating Action Menu - Positioned Safely BELOW HUD to prevent collision */}
+      <div className="absolute right-4 top-[calc(env(safe-area-inset-top,0px)+9.8rem)] z-30 flex flex-col gap-2.5">
         {!navigationMode && (
-          <FAB
-            icon={<RouteIcon className="size-6" />}
-            ariaLabel={showAllRoutes ? 'Sembunyikan seluruh rute' : 'Tampilkan seluruh rute'}
-            variant="overlay"
-            active={showAllRoutes}
-            onClick={() => { void hapticImpact('light'); setShowAllRoutes((v) => !v); }}
-          />
-        )}
-
-        {!navigationMode && (
-          <FAB
-            icon={<Timer className="size-6" />}
-            ariaLabel="Zona waktu tempuh (isochrones)"
-            variant="overlay"
-            active={showIsochrones}
-            onClick={() => {
-              void hapticImpact('light');
+          <MapLayersMenu
+            showAllRoutes={showAllRoutes}
+            onToggleAllRoutes={() => setShowAllRoutes((v) => !v)}
+            showIsochrones={showIsochrones}
+            onToggleIsochrones={() => {
               setShowIsochrones((v) => {
                 const next = !v;
                 if (!next) setIsochrones(null);
                 return next;
               });
             }}
-          />
-        )}
-
-        {tracking.position && !navigationMode && (
-          <FAB
-            icon={<LocateFixed className="size-6" />}
-            ariaLabel="Kembali ke posisi saya"
-            variant="overlay"
-            onClick={() => { void hapticImpact('light'); tracking.setFollowMode(true); }}
+            activeCoords={activeLat != null && activeLng != null ? { lat: activeLat, lng: activeLng } : null}
+            onOpenExternalNavigation={openExternalNavigation}
+            onRecenterLocation={tracking.position ? () => tracking.setFollowMode(true) : undefined}
           />
         )}
 
         {navigationMode && (
-          <FAB
-            icon={<RefreshCw className="size-6" />}
-            ariaLabel="Hitung ulang rute dari posisi saya"
-            variant="overlay"
+          <button
+            aria-label="Hitung ulang rute dari posisi saya"
             onClick={() => {
               void hapticImpact('light');
-              // Reroute leg aktif dari posisi kurir + refresh order sisa (depot baru).
               if (tracking.position) {
                 setDepotOverride({ lat: tracking.position.lat, lng: tracking.position.lng });
                 lastAutoReoptRef.current = { at: Date.now(), lat: tracking.position.lat, lng: tracking.position.lng };
@@ -416,7 +385,10 @@ export default function Route() {
                 toast.warning('Posisi GPS belum tersedia');
               }
             }}
-          />
+            className="flex size-12 items-center justify-center rounded-2xl border border-brand/30 bg-brand-soft text-brand-pressed shadow-card backdrop-blur-xl transition-all active:scale-90"
+          >
+            <RefreshCw className="size-5" />
+          </button>
         )}
       </div>
 

@@ -22,7 +22,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'firebase/messaging': path.resolve(__dirname, './src/lib/firebase-messaging-stub.ts'),
     },
   },
   server: {

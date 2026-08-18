@@ -56,10 +56,10 @@ export function useTodayDeliveries() {
       const cached = await db.getCachedDeliveries();
       return cached.length > 0 ? cached : [];
     },
-    staleTime: 30_000,
-    // Auto-refresh sambil online supaya pesanan baru muncul tanpa harus
-    // tutup/buka ulang aplikasi (bug lama "pesanan 0 padahal ada").
-    refetchInterval: isOnline ? 45_000 : false,
+    staleTime: 5_000,
+    // Auto-refresh sambil online supaya pesanan baru langsung muncul tanpa harus
+    // tutup/buka ulang aplikasi.
+    refetchInterval: isOnline ? 20_000 : false,
     refetchOnReconnect: true,
     retry: isOnline ? 2 : 0,
     placeholderData: () => queryClient.getQueryData<CourierDelivery[]>(deliveriesKeys.today),

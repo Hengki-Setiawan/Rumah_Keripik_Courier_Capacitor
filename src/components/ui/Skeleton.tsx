@@ -5,15 +5,15 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className }: SkeletonProps) {
-  return <div className={cn('animate-pulse rounded-[14px] bg-ink-muted/20', className)} aria-hidden />;
+  return <div className={cn('shimmer-wave rounded-2xl bg-raised/80', className)} aria-hidden />;
 }
 
 export function SkeletonCard({ className }: SkeletonProps) {
   return (
-    <div className={cn('rounded-[20px] bg-raised p-4 shadow-card flex flex-col gap-3', className)}>
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <Skeleton className="h-6 w-24" />
-      <Skeleton className="h-3.5 w-full" />
+    <div className={cn('rounded-3xl border border-white/8 bg-surface/80 p-4 shadow-card flex flex-col gap-3', className)}>
+      <Skeleton className="size-10 rounded-2xl" />
+      <Skeleton className="h-6 w-28" />
+      <Skeleton className="h-4 w-full" />
     </div>
   );
 }

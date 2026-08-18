@@ -58,19 +58,22 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
   return (
     <div
       className={cn(
-        'pointer-events-none absolute left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+4.375rem)] z-10 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 shadow-card',
+        'pointer-events-none absolute left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+4.125rem)] z-20 flex items-center gap-3 rounded-3xl border border-white/10 bg-surface/90 px-4 py-3 shadow-floating backdrop-blur-xl',
         className,
       )}
     >
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-brand-pressed shadow-sm">
         <MapPin className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium text-ink-secondary">Menuju stop #{activeStopIndex + 1}</p>
-        <p className="truncate text-sm font-semibold text-ink">{stop.customerName ?? 'Pelanggan'}</p>
-        <p className="text-xs tabular-nums text-ink-secondary">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-flex size-2 rounded-full bg-brand animate-pulse" />
+          <p className="truncate text-xs font-bold text-brand-pressed">Menuju Stop #{activeStopIndex + 1}</p>
+        </div>
+        <p className="truncate text-sm font-bold text-ink">{stop.customerName ?? 'Pelanggan'}</p>
+        <p className="text-xs font-semibold tabular-nums text-ink-secondary">
           {distanceM < 400 ? (
-            <span className="text-ok">Kurang dari 400 m - segera tiba</span>
+            <span className="text-ok font-bold">Kurang dari 400 m &middot; Segera Tiba</span>
           ) : (
             <span>
               {distanceM >= 1000 ? `${(distanceM / 1000).toFixed(1)} km` : `${Math.round(distanceM)} m`} &middot; ~
@@ -82,7 +85,7 @@ export function LiveNavigationHud({ route, activeStopIndex, courierLocation, cla
       <button
         aria-label="Buka navigasi di Google Maps"
         onClick={() => openExternalNavigation(stop.lat, stop.lng)}
-        className="pointer-events-auto flex size-12 shrink-0 items-center justify-center rounded-full bg-brand text-on-accent shadow-card transition-transform active:scale-95"
+        className="pointer-events-auto flex size-11 shrink-0 items-center justify-center rounded-2xl bg-brand text-on-accent shadow-[0_4px_12px_rgba(197,90,43,0.4)] transition-transform active:scale-95 hover:bg-brand-hover"
       >
         <Navigation className="size-5" />
       </button>

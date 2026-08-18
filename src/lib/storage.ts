@@ -7,13 +7,14 @@ export const STORAGE_KEYS = {
   deviceId: 'rk.device_id',
   pinEnabled: 'rk.pin_enabled',
   pinCode: 'rk.pin_code',
+  pinSalt: 'rk.pin_salt',
   themeMode: 'rk.theme_mode',
   voiceMuted: 'rk.voice_muted',
   voiceEnabled: 'rk.voice_enabled',
   voiceRate: 'rk.voice_rate',
 } as const;
 
-// Kunci yang berisi data sensitif (token sesi) — disimpan terenkripsi
+// Kunci yang berisi data sensitif (token sesi) Ã¢â‚¬â€ disimpan terenkripsi
 // via Android Keystore (capacitor-secure-storage-plugin), bukan Preferences biasa.
 // Menyikapi keamanan Capacitor: bundle JS mudah diekstrak, jadi token jangan di localStorage.
 const SENSITIVE_KEYS = new Set<string>([
@@ -21,6 +22,7 @@ const SENSITIVE_KEYS = new Set<string>([
   'rk.refresh_token',
   'rk.pin_enabled',
   'rk.pin_code',
+  'rk.pin_salt',
 ]);
 
 const memoryStore = new Map<string, string>();

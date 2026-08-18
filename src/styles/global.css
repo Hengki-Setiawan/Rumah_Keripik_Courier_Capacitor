@@ -165,9 +165,11 @@ body {
   --color-money: var(--status-money);
   --color-money-soft: var(--status-money-subtle);
 
-  --shadow-card: 0 1px 3px 0 rgb(28 25 23 / 0.06), 0 1px 2px -1px rgb(28 25 23 / 0.04);
-  --shadow-card-lg: 0 8px 24px -8px rgb(28 25 23 / 0.12), 0 2px 6px -2px rgb(28 25 23 / 0.05);
-  --shadow-sheet: 0 -4px 24px -4px rgb(28 25 23 / 0.12), 0 -2px 8px -2px rgb(28 25 23 / 0.06);
+  --shadow-card: 0 2px 8px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.04), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+  --shadow-card-lg: 0 12px 32px -8px rgb(0 0 0 / 0.24), 0 4px 12px -2px rgb(0 0 0 / 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-sheet: 0 -8px 32px -4px rgb(0 0 0 / 0.28), 0 -2px 10px -2px rgb(0 0 0 / 0.12), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-frameless: 0 8px 24px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  --shadow-floating: 0 16px 40px -8px rgba(0, 0, 0, 0.45), 0 4px 16px -2px rgba(0, 0, 0, 0.2), inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
 
   --color-umber-50: #faf6ef;
   --color-umber-100: #f8f0e5;
@@ -279,6 +281,54 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.35s ease-in-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-wave {
+  background: linear-gradient(
+    90deg,
+    var(--surface-raised) 0%,
+    var(--surface-highest) 50%,
+    var(--surface-raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite linear;
+}
+
+.glass-surface {
+  background: var(--surface-raised);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-frameless);
+}
+
+.floating-glass {
+  background: rgba(26, 22, 19, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-floating);
+}
+
+[data-theme='light'] .floating-glass {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 /* Aksesibilitas: hormati preferensi pengguna yang mengurangi gerakan (blueprint UI §10.3). */
