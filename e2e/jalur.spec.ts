@@ -30,19 +30,24 @@ function routesWith(extra: RoutesMockData): RoutesMockData {
   };
 }
 
-test('dashboard menampilkan Cari Jalur saat tidak ada jalur aktif', async ({ page }) => {
+test('dashboard menampilkan aksi peta rute dan jalur tersedia di route picker', async ({ page }) => {
   await installCourierApiMock(page, { routes: routesWith({ available: [openRoute] }) });
   await loginAs(page);
 
-  await expect(page.getByText('Cari Jalur Hari Ini')).toBeVisible();
-  await expect(page.getByText('1 jalur tersedia untuk dipilih')).toBeVisible();
+  await expect(page.getByText('Buka Peta Rute Pengiriman')).toBeVisible();
+  await expect(page.getByText('Buka peta real-time & optimasi rute')).toBeVisible();
+
+  await page.goto('/route-picker');
+  await expect(page.getByText('Pilih Jalur Hari Ini')).toBeVisible();
+  await expect(page.getByText('Jalur Makassar Selatan')).toBeVisible();
+  await expect(page.getByText('3 kiriman · ~12.5 km')).toBeVisible();
 });
 
 test('ambil jalur membuka halaman rute dengan titik pengiriman', async ({ page }) => {
   await installCourierApiMock(page, { routes: routesWith({ available: [openRoute] }) });
   await loginAs(page);
 
-  await page.getByText('Cari Jalur Hari Ini').click();
+  await page.goto('/route-picker');
   await expect(page.getByText('Pilih Jalur Hari Ini')).toBeVisible();
   await expect(page.getByText('Jalur Makassar Selatan')).toBeVisible();
   await expect(page.getByText('3 kiriman · ~12.5 km')).toBeVisible();
@@ -59,11 +64,11 @@ test('route picker menampilkan empty state saat tidak ada jalur tersedia', async
   await installCourierApiMock(page, { routes: routesWith() });
   await loginAs(page);
 
-  await page.getByText('Cari Jalur Hari Ini').click();
+  await page.goto('/route-picker');
   await expect(page.getByText('Belum ada jalur tersedia')).toBeVisible();
 });
 
-test('dashboard menampilkan Mulai Lacak saat jalur aktif dan membuka rute langsung', async ({ page }) => {
+test('dashboard membuka rute langsung saat jalur aktif', async ({ page }) => {
   await installCourierApiMock(page, {
     routes: routesWith({
       mine: [{ ...openRoute, id: 11, routeName: 'Jalur Makassar Utara', status: 'in_progress', courierId: 1 }],
@@ -72,8 +77,8 @@ test('dashboard menampilkan Mulai Lacak saat jalur aktif dan membuka rute langsu
   });
   await loginAs(page);
 
-  await expect(page.getByText('Mulai Lacak Lokasi Real-Time')).toBeVisible();
-  await page.getByText('Mulai Lacak Lokasi Real-Time').click();
+  await expect(page.getByText('Lanjut navigasi rute aktif & panduan suara')).toBeVisible();
+  await page.getByLabel('Buka rute peta hari ini').click();
   await expect(page.getByText('Rute Hari Ini')).toBeVisible();
 });
 

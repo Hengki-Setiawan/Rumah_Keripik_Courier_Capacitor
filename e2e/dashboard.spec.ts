@@ -8,9 +8,9 @@ test.beforeEach(async ({ page }) => {
 test('dashboard menampilkan statistik hari ini', async ({ page }) => {
   await loginAs(page);
 
-  await expect(page.getByText('Pengiriman Hari Ini')).toBeVisible();
-  await expect(page.getByText('Menunggu')).toBeVisible();
-  await expect(page.getByText('Terkirim')).toBeVisible();
+  await expect(page.getByText('Total Pengiriman')).toBeVisible();
+  await expect(page.getByText('1 dalam perjalanan')).toBeVisible();
+  await expect(page.getByText('Selesai Terkirim')).toBeVisible();
   await expect(page.getByText('Pendapatan Minggu Ini')).toBeVisible();
 });
 
